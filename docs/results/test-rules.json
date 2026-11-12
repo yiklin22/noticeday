@@ -1,0 +1,33 @@
+{
+  "split": "test",
+  "method": "rules",
+  "contracts": 102,
+  "tallies": {
+    "expiration": {
+      "true_empty": 33,
+      "wrong": 9,
+      "correct": 26,
+      "missed": 24,
+      "unscorable": 6,
+      "false_alarm": 4
+    },
+    "renewal": {
+      "true_empty": 75,
+      "correct": 17,
+      "false_alarm": 3,
+      "missed": 6,
+      "unscorable": 1
+    },
+    "notice": {
+      "true_empty": 87,
+      "correct": 11,
+      "missed": 2,
+      "false_alarm": 2
+    },
+    "deadline": {
+      "wrong": 2,
+      "flagged": 6,
+      "correct": 2
+    }
+  }
+}

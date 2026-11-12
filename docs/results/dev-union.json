@@ -1,0 +1,29 @@
+{
+  "split": "dev",
+  "method": "union",
+  "contracts": 30,
+  "tallies": {
+    "expiration": {
+      "false_alarm": 5,
+      "correct": 12,
+      "true_empty": 6,
+      "unscorable": 2,
+      "missed": 5
+    },
+    "renewal": {
+      "correct": 7,
+      "true_empty": 22,
+      "missed": 1
+    },
+    "notice": {
+      "true_empty": 24,
+      "correct": 4,
+      "false_alarm": 1,
+      "missed": 1
+    },
+    "deadline": {
+      "correct": 4,
+      "flagged": 1
+    }
+  }
+}
