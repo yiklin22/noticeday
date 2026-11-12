@@ -1,0 +1,24 @@
+[project]
+name = "noticeday"
+version = "0.1.0"
+description = "Finds the auto-renewal notice deadline in a contract, shows the clause it came from, and puts confirmed deadlines on a calendar. Measured on CUAD."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = ["fastapi", "uvicorn", "jinja2", "python-multipart", "pdfplumber"]
+
+[project.optional-dependencies]
+model = ["torch", "transformers", "accelerate"]
+
+[dependency-groups]
+dev = ["pytest", "httpx"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["noticeday"]
+
+[tool.setuptools.package-data]
+noticeday = ["templates/*"]
