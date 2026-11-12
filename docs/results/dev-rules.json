@@ -12,9 +12,9 @@
       "wrong": 30
     },
     "renewal": {
-      "missed": 27,
+      "missed": 28,
       "true_empty": 260,
-      "correct": 93,
+      "correct": 92,
       "wrong": 4,
       "false_alarm": 8,
       "unscorable": 15

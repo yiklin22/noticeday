@@ -27,7 +27,9 @@ reading it correctly and having the date in front of someone in time.
    14 days before.
 6. For a confirmed auto-renewing contract, it drafts a non-renewal notice
    letter with the notice clause underneath. It never sends anything.
-7. Optional **second reader**: with `NOTICEDAY_MODEL` set, a local model
+7. Where renewal is at one party's option, the date by which that party
+   must give notice to renew ("Exercise renewal option by").
+8. Optional **second reader**: with `NOTICEDAY_MODEL` set, a local model
    reads each upload in the background, about a minute per contract. Each
    value is marked "agrees" or shows the model's different value with its
    quote. Values the model could not back with a quote are listed as such.
@@ -132,7 +134,7 @@ ended. It is a reason the review step stays.
 
 ```bash
 uv venv && uv pip install -e . pytest httpx
-pytest -q                                   # 23 tests
+pytest -q                                   # 25 tests
 python scripts/seed_demo.py demo.db         # needs data/cuad (below); or upload your own
 NOTICEDAY_DB=demo.db uvicorn noticeday.app:app --port 8830
 # second reader: add NOTICEDAY_MODEL=<Qwen3-4B-Instruct-2507 folder> and pip install -e '.[model]'; needs ~8 GB RAM
@@ -169,9 +171,12 @@ for m in model_raw model union agree; do python scripts/evaluate.py --split test
 - **No login, no multi-user accounts, no email reminders.** The calendar
   file is the reminder channel. These would come before any real pilot.
 - Amendments that change the term are not linked to the original contract.
-- **Option deadlines are not tracked.** "Notify us six months before the end
-  of the term if you want to extend" is a deadline too. The model finds many
-  of them (see the notice false alarms above), but the app has no place for
-  them yet.
+- **Option deadlines are rules-only and unmeasured.** "Notify us six months
+  before the end of the term if you want to extend" is a deadline too. Since
+  milestone 8, the rules extract it when renewal is not automatic, and the
+  dashboard shows "Exercise renewal option by". CUAD has no label for it. By
+  my own reading of the 9 dev-split hits: 6 right, 2 borderline (a
+  franchisor's notice; a renewal the parties must both agree to), 1 wrong.
+  That is an inspection, not a measurement.
 - Evergreen month-to-month continuations ("thereafter continues on a month
   to month basis until terminated") are often missed by the rules.

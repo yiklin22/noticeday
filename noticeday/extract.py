@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 
 from .text import Duration, find_dates, find_durations, normalize, sentences
 
-FIELDS = ("start_date", "end_date", "term", "renewal", "auto_renew", "notice", "renewal_limit")
+FIELDS = ("start_date", "end_date", "term", "renewal", "auto_renew", "notice", "renewal_limit", "option_notice")
 
 
 @dataclass
@@ -66,7 +66,7 @@ AUTO = re.compile(
     re.I,
 )
 OPTION = re.compile(r"\bmay\s+(?:be\s+)?(?:renew|extend)|option\s+to\s+(?:renew|extend)|right\s+to\s+(?:renew|extend)|renewable", re.I)
-MUTUAL = re.compile(r"mutual(?:ly)?\s+(?:written\s+)?(?:agree|consent)|by\s+mutual|upon\s+mutual|written\s+agreement\s+of\s+(?:both|the)\s+parties|parties\s+(?:may\s+)?agree", re.I)
+MUTUAL = re.compile(r"mutual(?:ly)?\s+(?:written\s+)?(?:agree|consent)|by\s+mutual|upon\s+mutual|written\s+agreement\s+of\s+(?:both|the)\s+parties|parties\s+(?:may\s+)?agree|agree(?:s|d)?\s+in\s+writing|satisfactory\s+agreement|to\s+be\s+agreed", re.I)
 CURE = re.compile(r"within\s*$|cure|breach|default", re.I)
 NOTICE_CONTEXT = re.compile(r"renew|expir|end\s+of\s+(?:the|such|any|its)\s+(?:then[- ]current\s+|initial\s+|renewal\s+)?term|extend|extension", re.I)
 STRONG_TERM = re.compile(
@@ -182,6 +182,28 @@ def _is_notice(text: str, ds: int, de: int, floor: int) -> bool:
     return bool(NOTICE_CONTEXT.search(text[max(floor, ds - 150): de + 150]))
 
 
+OPTION_SENTENCE = re.compile(
+    r"option\s+to\s+(?:renew|extend)|right\s+to\s+(?:renew|extend)|(?:elects?|wish(?:es)?|desires?|intends?)\s+to\s+(?:renew|extend)|"
+    r"\bmay\s+(?:\w+\s+){0,2}(?:renew|extend)",
+    re.I,
+)
+
+
+def _option_notice(text: str):
+    """Notice one party must give to *exercise* an option to renew or extend."""
+    for s, e in sentences(text):
+        sent = text[s:e]
+        if not OPTION_SENTENCE.search(sent) or MUTUAL.search(sent):
+            continue
+        for dur, ds, de in find_durations(sent, s):
+            near = text[max(s, ds - 80): de + 60]
+            if re.search(r"terminat|cancel", near, re.I):
+                continue
+            if dur.unit in ("day", "week", "month") and _is_notice(text, ds, de, s):
+                return Field(dur, ds, de, "option_notice")
+    return None
+
+
 def _renewal(text: str):
     """Return (renewal, auto_renew, notice) fields."""
     best = None
@@ -258,6 +280,10 @@ def extract(raw_text: str) -> Extraction:
     for name, f in (("renewal", renewal), ("auto_renew", auto), ("notice", notice), ("renewal_limit", limit)):
         if f:
             ex.fields[name] = f
+    if not (auto and auto.value):
+        option = _option_notice(text)
+        if option:
+            ex.fields["option_notice"] = option
     return ex
 
 

@@ -44,3 +44,10 @@ def test_renewal_limit():
     assert ex.get("renewal_limit") is None
     ex = extract("This Agreement shall automatically renew for up to three (3) additional periods of twelve (12) months each.")
     assert ex.get("renewal_limit") == 3
+
+
+def test_option_notice_only_when_renewal_is_not_automatic():
+    ex = extract("The Initial Term of this Agreement is three (3) years. If Distributor wishes to extend the term beyond the "
+                 "Initial Term, it must notify Supplier in writing at least six (6) months prior to the end of the Initial Term.")
+    assert ex.get("option_notice") == Duration(6, "month")
+    assert extract(CONTRACT).get("option_notice") is None

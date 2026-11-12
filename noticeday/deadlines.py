@@ -48,7 +48,7 @@ def initial_term_end(start, end, term: Duration | None):
 
 
 def schedule(start, end, term, renewal, auto_renew: bool, notice: Duration | None,
-             today: dt.date, renewal_limit: int | None = None) -> Schedule:
+             today: dt.date, renewal_limit: int | None = None, option_notice: Duration | None = None) -> Schedule:
     """renewal_limit: how many renewals the contract allows ("one (1) additional
     period" -> 1); None means no limit was found."""
     first_end = initial_term_end(start, end, term)
@@ -73,6 +73,13 @@ def schedule(start, end, term, renewal, auto_renew: bool, notice: Duration | Non
             return Schedule("expires", term_end=term_end, act_by=term_end, cycles_rolled=rolled,
                             reason=f"Final term: the contract allows {renewal_limit} renewal(s) and no more.")
     if not renews:
+        if option_notice is not None and term_end >= today:
+            by = shift(term_end, option_notice, -1)
+            if by >= today:
+                return Schedule("option_by", term_end=term_end, act_by=by,
+                                reason=f"Renewal is your option: give notice {option_notice} before the term ends to renew.")
+            return Schedule("expires", term_end=term_end, act_by=term_end,
+                            reason="The window to exercise the renewal option has closed; the term ends on this date.")
         if term_end < today:
             return Schedule("expired", term_end=term_end, reason="Term ended and no automatic renewal was found.")
         return Schedule("expires", term_end=term_end, act_by=term_end,

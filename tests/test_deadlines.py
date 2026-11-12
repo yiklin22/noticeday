@@ -43,3 +43,12 @@ def test_renewal_limit_stops_rolling():
     assert s.status == "expired" and s.term_end == D(2019, 11, 30)
     s = schedule(*args, today=D(2018, 10, 1), renewal_limit=1)
     assert s.status == "expires" and s.term_end == D(2019, 11, 30)  # notice window for 2018 closed; final term
+
+
+def test_option_deadline():
+    s = schedule(D(2025, 1, 1), None, Duration(3, "year"), None, False, None, today=D(2026, 11, 13),
+                 option_notice=Duration(6, "month"))
+    assert s.status == "option_by" and s.act_by == D(2027, 7, 1)
+    s = schedule(D(2025, 1, 1), None, Duration(3, "year"), None, False, None, today=D(2027, 8, 1),
+                 option_notice=Duration(6, "month"))
+    assert s.status == "expires" and "closed" in s.reason

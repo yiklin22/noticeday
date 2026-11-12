@@ -27,10 +27,11 @@ LABELS = {
     "term": "Initial term length", "renewal": "Renewal length",
     "auto_renew": "Renews automatically", "notice": "Notice to stop renewal",
     "renewal_limit": "Number of renewals allowed",
+    "option_notice": "Notice to exercise a renewal option",
 }
 STATUS_TEXT = {
     "act_by": "Send notice by", "renews_no_notice": "Renews; notice period not found",
-    "expires": "Expires", "expired": "Expired", "no_fixed_end": "No fixed end",
+    "expires": "Expires", "option_by": "Exercise renewal option by", "expired": "Expired", "no_fixed_end": "No fixed end",
     "incomplete": "Needs facts",
 }
 
@@ -61,7 +62,7 @@ def compare(c):
         return None
     out = {}
     for k in FIELDS:
-        if k == "renewal_limit":  # the model is not asked for it
+        if k in ("renewal_limit", "option_notice"):  # the model is not asked for these
             continue
         mine, theirs = c["values"][k], sec["values"].get(k)
         if isinstance(mine, Duration) and isinstance(theirs, Duration):
@@ -87,7 +88,7 @@ def ics_text(s: str) -> str:
 def plan(c):
     v = c["values"]
     return schedule(v["start_date"], v["end_date"], v["term"], v["renewal"], bool(v["auto_renew"]), v["notice"], today(),
-                    renewal_limit=v["renewal_limit"])
+                    renewal_limit=v["renewal_limit"], option_notice=v["option_notice"])
 
 
 def pdf_text(data: bytes) -> str:
@@ -173,7 +174,7 @@ async def save(request: Request, cid: int):
         for k in ("start_date", "end_date"):
             raw = form.get(k, "").strip()
             values[k] = "perpetual" if raw.lower() == "perpetual" else (dt.date.fromisoformat(raw) if raw else None)
-        for k in ("term", "renewal", "notice"):
+        for k in ("term", "renewal", "notice", "option_notice"):
             n = form.get(f"{k}_n", "").strip()
             values[k] = Duration(int(n), form.get(f"{k}_unit", "day")) if n else None
     except ValueError:

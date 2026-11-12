@@ -40,7 +40,7 @@ def from_json(name, v):
         return None
     if name in ("start_date", "end_date"):
         return "perpetual" if v == "perpetual" else dt.date.fromisoformat(v)
-    if name in ("term", "renewal", "notice"):
+    if name in ("term", "renewal", "notice", "option_notice"):
         n, unit = v.split()
         return Duration(int(n), unit)
     if name == "renewal_limit":
