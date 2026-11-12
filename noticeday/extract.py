@@ -86,7 +86,7 @@ ANNIVERSARY = re.compile(
 NOTICE_AFTER = re.compile(
     r"^(?:[^.;]{0,60}?\b(?:prior|before|in\s+advance|preceding)\b|['\u2019]?s?\s*(?:advance\s+|prior\s+)?(?:written\s+)?notice)", re.I)
 IMPLICIT_RENEWAL = [
-    (re.compile(r"year[\s-]+to[\s-]+year|(?:annual|yearly)\s+basis|annually\s+renew|renew\s+annually|an\s+additional\s+year|one\s+further\s+year", re.I), Duration(1, "year")),
+    (re.compile(r"year[\s-]+to[\s-]+year|(?:annual|yearly)\s+basis|annually\s+renew|renew\s+annually|an\s+additional\s+year|one\s+further\s+year|annual\s+(?:renewal\s+)?(?:period|term)s?", re.I), Duration(1, "year")),
     (re.compile(r"month[\s-]+to[\s-]+month|monthly\s+(?:basis|periods?)|an\s+additional\s+month", re.I), Duration(1, "month")),
 ]
 NOTICE_BEFORE = re.compile(r"notice[^.;]{0,40}$", re.I)
