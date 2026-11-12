@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}{{ c.name }} · noticeday{% endblock %}
+{% block body %}
+<p><a href="/">← All contracts</a></p>
+<h1>{{ c.name }}</h1>
+<div class="card">
+  <div class="verdict">{{ status }}{% if s.act_by %}: <span class="num">{{ s.act_by }}</span>{% endif %}</div>
+  <p style="margin:.3rem 0">{{ s.reason }}{% if s.term_end %} Current term ends <span class="num">{{ s.term_end }}</span>{% if s.cycles_rolled %} (after {{ s.cycles_rolled }} renewal{{ '' if s.cycles_rolled == 1 else 's' }}){% endif %}.{% endif %}</p>
+  {% if c.confirmed_at %}<span class="pill ok">Confirmed by {{ c.confirmed_by }} at {{ c.confirmed_at }}</span>
+  {% else %}<span class="pill warn">Not confirmed: check each value against its clause below</span>{% endif %}
+</div>
+
+<form method="post">
+<table>
+  <thead><tr><th style="width:30%">Fact</th><th>Value and where it came from</th></tr></thead>
+  <tbody>
+  {% for f in fields %}
+  <tr>
+    <td><strong>{{ f.label }}</strong><br>
+      {% if not f.found %}<span class="pill warn">not found</span>{% elif f.edited %}<span class="pill warn">edited</span>{% else %}<span class="muted" style="font-size:.8rem">rule: {{ f.rule }}</span>{% endif %}</td>
+    <td>
+      {% if f.key in ("start_date", "end_date") %}
+        <input type="text" name="{{ f.key }}" value="{{ f.value or '' }}" placeholder="YYYY-MM-DD{{ ' or perpetual' if f.key == 'end_date' }}">
+      {% elif f.key == "auto_renew" %}
+        <label><input type="checkbox" name="auto_renew" {{ 'checked' if f.value }}> renews unless someone gives notice</label>
+      {% else %}
+        <input type="number" min="1" name="{{ f.key }}_n" value="{{ f.n }}">
+        <select name="{{ f.key }}_unit">{% for u in ("day", "week", "month", "year") %}<option {{ 'selected' if u == f.unit }}>{{ u }}</option>{% endfor %}</select>
+      {% endif %}
+      {% if f.quote %}<blockquote>…{{ f.quote[0] }}<mark>{{ f.quote[1] }}</mark>{{ f.quote[2] }}…</blockquote>{% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+<div class="card row">
+  <button class="plain" name="action" value="save">Save changes</button>
+  <input type="text" name="reviewer" placeholder="Your name">
+  <button name="action" value="confirm">Confirm these values</button>
+  <span class="muted">Only confirmed deadlines go on the calendar. Editing after confirming clears the confirmation.</span>
+</div>
+</form>
+<form method="post" action="/contracts/{{ c.id }}/delete" onsubmit="return confirm('Delete this contract and its text?')">
+  <button class="danger">Delete contract</button>
+</form>
+<details><summary>Full text ({{ c.text|length }} characters)</summary><p style="white-space:pre-wrap;font-size:.85rem">{{ c.text }}</p></details>
+{% endblock %}

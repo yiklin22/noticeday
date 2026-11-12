@@ -105,11 +105,15 @@ def find_durations(text: str, offset: int = 0):
         if n is None or n == 0:
             continue
         unit = m.group("unit").lower()
-        # Start the span at the number, not at words the regex swallowed.
+        # Start the span at the number, not at words the regex swallowed
+        # ("at least sixty (60) days" -> "sixty (60) days").
         start = m.start()
-        if m.group("words") and not m.group("par"):
-            for w in re.finditer(r"[a-z]+", m.group("words").lower()):
-                if w.group() in NUMBER_WORDS - {"and"} and words_to_int(m.group("words")[w.start():]) == n:
+        words = m.group("words")
+        if words:
+            v = words_to_int(words)
+            start = m.start("par") - 1 if v is None and m.group("par") else start
+            for w in re.finditer(r"[a-z]+", words.lower()):
+                if v is not None and w.group() in NUMBER_WORDS - {"and"} and words_to_int(words[w.start():]) == v:
                     start = m.start() + w.start()
                     break
         yield Duration(n, unit), start + offset, m.end() + offset

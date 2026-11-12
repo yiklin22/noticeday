@@ -59,6 +59,7 @@ PERPETUAL = re.compile(
     re.I,
 )
 END_CUE_EXTRA = re.compile(r"(?:concluding|ending|terminating|expiring)\s*(?:on\s+)?$", re.I)
+AFTER_TERM = re.compile(r"after\s+(?:the\s+)?(?:expiration\s+of\s+the\s+)?(?:initial|original)\s+term|\bthereafter\b", re.I)
 RENEW = re.compile(r"renew|successive|automatically\s+extend|extended\s+automatically|extended\s+for|additional\s+(?:term|period)s?\b", re.I)
 AUTO = re.compile(
     r"automatic|unless\s+(?:either|one|a)\s+part|unless\s+.{0,80}?notice|shall\s+(?:be\s+)?(?:renew|extend)|will\s+(?:be\s+)?(?:renew|extend)",
@@ -105,8 +106,8 @@ def _start_date(text: str):
             score += 0.5
         if s >= head and rule != "effective":
             continue
-        if score == 0:
-            score, rule = 1, "first_date"
+        if not rule:
+            score, rule = max(score, 1), "first_date"
         if best is None or score > best[0]:
             best = (score, Field(d, s, e, rule))
     return best[1] if best else None
@@ -138,8 +139,9 @@ def _term(text: str, start_field):
     """Return (end_date field, term field) for the initial term."""
     for score, s, e in _term_sentences(text)[:8]:
         sent = text[s:e]
-        renew_at = RENEW.search(sent)
-        cut = renew_at.start() if renew_at else len(sent)
+        # Stop before text about what happens after the initial term.
+        later = [m.start() for m in (RENEW.search(sent), AFTER_TERM.search(sent)) if m]
+        cut = min(later) if later else len(sent)
         for d, ds, de in find_dates(sent, s):
             if ds - s > cut:
                 break

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>Upcoming deadlines <span class="muted" style="font-size:1rem;font-weight:400">as of {{ today }}</span></h1>
+{% if unconfirmed %}<p class="pill warn">{{ unconfirmed }} deadline{{ '' if unconfirmed == 1 else 's' }} not yet confirmed: they stay off the calendar until a person checks them.</p>{% endif %}
+<table>
+  <thead><tr><th>Contract</th><th>Status</th><th>Date</th><th class="hide-sm">Days left</th><th>Checked</th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+    <tr>
+      <td><a href="/contracts/{{ r.c.id }}">{{ r.c.name }}</a></td>
+      <td>{{ r.status }}</td>
+      <td class="num">{{ r.s.act_by or r.s.term_end or "—" }}</td>
+      <td class="num hide-sm {{ 'soon' if r.days is not none and r.days <= 60 }}">{{ r.days if r.days is not none else "" }}</td>
+      <td>{% if r.c.confirmed_at %}<span class="pill ok">confirmed</span>{% else %}<span class="pill warn">to check</span>{% endif %}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="5" class="muted">No contracts yet. Add one below.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<p><a href="/calendar.ics">Download calendar (.ics) of confirmed deadlines</a> <span class="muted">· each event has a reminder 14 days before</span></p>
+
+<div class="card">
+  <h2 style="margin-top:0">Add a contract</h2>
+  <form method="post" action="/contracts" enctype="multipart/form-data">
+    <div class="row"><input type="text" name="name" placeholder="Name, e.g. Waste collection – CleanCo" size="40">
+    <input type="file" name="file" accept=".pdf,.txt"></div>
+    <p class="muted" style="margin:.5rem 0">Or paste the text:</p>
+    <textarea name="text" rows="5" style="width:100%"></textarea>
+    <p><button>Read contract</button> <span class="muted">PDF with a text layer or .txt, up to 5 MB.</span></p>
+  </form>
+</div>
+{% endblock %}
