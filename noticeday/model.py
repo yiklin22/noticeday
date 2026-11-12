@@ -14,6 +14,7 @@ import datetime as dt
 import json
 import os
 import re
+import threading
 from pathlib import Path
 
 from .extract import IMPLICIT_RENEWAL, PERPETUAL
@@ -157,6 +158,55 @@ def raw_values(answer: dict) -> dict:
         else:
             out[key] = _dur(raw)
     return out
+
+
+_LOCK = threading.Lock()
+_LOADED = None
+
+
+def _load(threads: int):
+    global _LOADED
+    with _LOCK:
+        if _LOADED is None:
+            os.environ.setdefault("HF_HUB_OFFLINE", "1")
+            import torch
+            from transformers import AutoModelForCausalLM, AutoTokenizer
+            torch.set_num_threads(threads)
+            tok = AutoTokenizer.from_pretrained(MODEL_ID)
+            model = AutoModelForCausalLM.from_pretrained(MODEL_ID, dtype=torch.bfloat16)
+            model.eval()
+            _LOADED = (tok, model)
+    return _LOADED
+
+
+def generate(text: str, threads: int = 8) -> tuple[str, int]:
+    """Greedy answer from the local model for one contract: (raw text, prompt tokens).
+    Loads the weights on first use (about 8 GB of RAM)."""
+    import torch
+    tok, model = _load(threads)
+    msgs = [{"role": "user", "content": PROMPT.format(passages=passages(normalize(text)))}]
+    ids = tok.apply_chat_template(msgs, add_generation_prompt=True, return_tensors="pt", return_dict=True)
+    with _LOCK, torch.inference_mode():
+        gen = model.generate(**ids, max_new_tokens=450, do_sample=False)
+    n = int(ids["input_ids"].shape[1])
+    return tok.decode(gen[0, n:], skip_special_tokens=True), n
+
+
+def second_reading(text: str, raw: str | None = None) -> dict:
+    """Run the model (or use a given raw answer) and apply the evidence gate.
+    Returns app field names: values that passed, reasons for dropped ones, quotes."""
+    if raw is None:
+        raw, _ = generate(text)
+    answer = parse_json(raw)
+    if answer is None:
+        return {"status": "failed", "error": "model answer was not JSON", "values": {}, "dropped": {}, "quotes": {}}
+    values, reasons = verify(answer, normalize(text))
+    names = dict(zip(KEYS, ("start_date", "end_date", "term", "renewal", "auto_renew", "notice")))
+    quotes = answer.get("quotes") if isinstance(answer.get("quotes"), dict) else {}
+    return {"status": "done",
+            "values": {names[k]: v for k, v in values.items()},
+            "dropped": {names[k]: r for k, r in reasons.items()},
+            "quotes": {names[k]: q for k, q in quotes.items() if k in names and isinstance(q, str)}}
 
 
 def load_model_predictions(recs: list[dict], method: str) -> dict:

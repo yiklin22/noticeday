@@ -33,3 +33,14 @@ def test_mutual_extension_is_not_a_renewal():
 def test_perpetual_and_explicit_end():
     assert extract("This Agreement shall commence on the Effective Date and continue until terminated by either party.").get("end_date") == "perpetual"
     assert extract("This Agreement shall begin on the Effective Date and shall continue until December 31, 2020.").get("end_date") == dt.date(2020, 12, 31)
+
+
+def test_renewal_limit():
+    ex = extract("The term of this Agreement is twelve (12) months from the date hereof, and will be automatically renewed "
+                 "for one (1) additional twelve month period unless either party shall notify the other in writing.")
+    assert ex.get("renewal_limit") == 1 and ex.get("renewal") == Duration(12, "month")
+    ex = extract("The initial term of this Agreement is five (5) years. Thereafter this Agreement shall automatically renew "
+                 "for successive one (1) year periods unless either party gives sixty (60) days notice.")
+    assert ex.get("renewal_limit") is None
+    ex = extract("This Agreement shall automatically renew for up to three (3) additional periods of twelve (12) months each.")
+    assert ex.get("renewal_limit") == 3

@@ -12,22 +12,13 @@ import time
 
 os.environ.setdefault("HF_HUB_OFFLINE", "1")
 
-from noticeday.model import CACHE, MODEL_ID, PROMPT, passages  # noqa: E402
-from noticeday.text import normalize  # noqa: E402
+from noticeday.model import CACHE, generate  # noqa: E402
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--split", default="dev")
 ap.add_argument("--limit", type=int)
 ap.add_argument("--threads", type=int, default=8)
 args = ap.parse_args()
-
-import torch  # noqa: E402
-from transformers import AutoModelForCausalLM, AutoTokenizer  # noqa: E402
-
-torch.set_num_threads(args.threads)
-tok = AutoTokenizer.from_pretrained(MODEL_ID)
-model = AutoModelForCausalLM.from_pretrained(MODEL_ID, dtype=torch.bfloat16)
-model.eval()
 
 recs = [json.loads(l) for l in open(f"data/cuad/{args.split}.jsonl")]
 if args.limit:
@@ -40,14 +31,9 @@ with open(path, "a") as out:
         if rec["id"] in done:
             continue
         t0 = time.time()
-        prompt = PROMPT.format(passages=passages(normalize(rec["text"])))
-        msgs = [{"role": "user", "content": prompt}]
-        ids = tok.apply_chat_template(msgs, add_generation_prompt=True, return_tensors="pt", return_dict=True)
-        with torch.inference_mode():
-            gen = model.generate(**ids, max_new_tokens=450, do_sample=False)
-        raw = tok.decode(gen[0, ids["input_ids"].shape[1]:], skip_special_tokens=True)
+        raw, n_tokens = generate(rec["text"], threads=args.threads)
         secs = time.time() - t0
-        out.write(json.dumps({"id": rec["id"], "raw": raw, "prompt_tokens": int(ids["input_ids"].shape[1]),
+        out.write(json.dumps({"id": rec["id"], "raw": raw, "prompt_tokens": n_tokens,
                               "seconds": round(secs, 1)}) + "\n")
         out.flush()
-        print(f"{i + 1}/{len(recs)} {secs:.0f}s {ids['input_ids'].shape[1]} tokens", flush=True)
+        print(f"{i + 1}/{len(recs)} {secs:.0f}s {n_tokens} tokens", flush=True)

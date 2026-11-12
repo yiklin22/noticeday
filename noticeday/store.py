@@ -19,7 +19,8 @@ create table if not exists contracts (
   extracted text not null,      -- json: field -> {value, start, end, rule}
   current text not null,        -- json: field -> value (after edits)
   confirmed_at text,
-  confirmed_by text
+  confirmed_by text,
+  second text                   -- json: the model's gated second reading
 );
 """
 
@@ -42,6 +43,8 @@ def from_json(name, v):
     if name in ("term", "renewal", "notice"):
         n, unit = v.split()
         return Duration(int(n), unit)
+    if name == "renewal_limit":
+        return int(v)
     return v
 
 
@@ -50,6 +53,9 @@ class Store:
         self.db = sqlite3.connect(str(path), check_same_thread=False)
         self.db.row_factory = sqlite3.Row
         self.db.executescript(SCHEMA)
+        cols = {r[1] for r in self.db.execute("pragma table_info(contracts)")}
+        if "second" not in cols:  # databases made before the second reader
+            self.db.execute("alter table contracts add column second text")
 
     def add(self, name: str, raw_text: str) -> int:
         ex = extract(raw_text)
@@ -76,6 +82,11 @@ class Store:
              dt.datetime.now().isoformat(timespec="seconds") if confirmed_by else None, confirmed_by, cid))
         self.db.commit()
 
+    def set_second(self, cid: int, reading: dict):
+        reading = dict(reading, values={k: to_json(k, v) for k, v in reading.get("values", {}).items()})
+        self.db.execute("update contracts set second = ? where id = ?", (json.dumps(reading), cid))
+        self.db.commit()
+
     def delete(self, cid: int):
         self.db.execute("delete from contracts where id = ?", (cid,))
         self.db.commit()
@@ -84,5 +95,9 @@ class Store:
     def _row(r):
         d = dict(r)
         d["extracted"] = json.loads(d["extracted"])
-        d["values"] = {k: from_json(k, v) for k, v in json.loads(d["current"]).items()}
+        d["values"] = {k: None for k in FIELDS}  # rows saved before a field existed
+        d["values"].update({k: from_json(k, v) for k, v in json.loads(d["current"]).items()})
+        d["second"] = json.loads(d["second"]) if d.get("second") else None
+        if d["second"]:
+            d["second"]["values"] = {k: from_json(k, v) for k, v in d["second"]["values"].items()}
         return d

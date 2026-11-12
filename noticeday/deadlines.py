@@ -48,7 +48,9 @@ def initial_term_end(start, end, term: Duration | None):
 
 
 def schedule(start, end, term, renewal, auto_renew: bool, notice: Duration | None,
-             today: dt.date) -> Schedule:
+             today: dt.date, renewal_limit: int | None = None) -> Schedule:
+    """renewal_limit: how many renewals the contract allows ("one (1) additional
+    period" -> 1); None means no limit was found."""
     first_end = initial_term_end(start, end, term)
     if first_end == "perpetual":
         return Schedule("no_fixed_end", reason="No fixed end date; check the termination clause.")
@@ -59,8 +61,17 @@ def schedule(start, end, term, renewal, auto_renew: bool, notice: Duration | Non
     if renews:
         # Roll forward to the first cycle whose notice window has not closed.
         while (shift(term_end, notice, -1) if notice else term_end) < today and rolled < 500:
+            if renewal_limit is not None and rolled >= renewal_limit:
+                break
             term_end = shift(term_end, renewal)
             rolled += 1
+        if renewal_limit is not None and rolled >= renewal_limit:
+            # The term now running is the last one the contract allows.
+            if term_end < today:
+                return Schedule("expired", term_end=term_end, cycles_rolled=rolled,
+                                reason=f"Ended after the last of {renewal_limit} allowed renewal(s).")
+            return Schedule("expires", term_end=term_end, act_by=term_end, cycles_rolled=rolled,
+                            reason=f"Final term: the contract allows {renewal_limit} renewal(s) and no more.")
     if not renews:
         if term_end < today:
             return Schedule("expired", term_end=term_end, reason="Term ended and no automatic renewal was found.")

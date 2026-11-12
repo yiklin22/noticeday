@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Notice letter · {{ c.name }}{% endblock %}
+{% block body %}
+<p><a href="/contracts/{{ c.id }}">← {{ c.name }}</a></p>
+<h1>Non-renewal notice (draft)</h1>
+{% if late %}<p class="pill warn">The notice deadline ({{ s.act_by }}) has passed for this term. Check the clause before sending anything.</p>{% endif %}
+<form class="card row" method="get">
+  <input type="text" name="company" value="{{ company }}" placeholder="Your company">
+  <input type="text" name="counterparty" value="{{ counterparty }}" placeholder="Other party">
+  <input type="text" name="signer" value="{{ signer }}" placeholder="Signed by">
+  <button class="plain">Fill in</button>
+</form>
+<div class="card" style="white-space:pre-wrap;font-family:Georgia,serif" id="letter">{{ today.strftime("%-d %B %Y") }}
+
+To: {{ counterparty or "[other party]" }}
+
+Re: Notice of non-renewal – {{ c.name }}
+
+Under the {{ c.name }}{% if start %} dated {{ start.strftime("%-d %B %Y") }}{% endif %}, the current term ends on {{ s.term_end.strftime("%-d %B %Y") }}. This letter is written notice that {{ company or "[your company]" }} will not renew the agreement, and that the agreement will end on that date.
+{% if notice %}
+The agreement requires notice at least {{ notice }} before the end of the term. This notice is given on {{ today.strftime("%-d %B %Y") }}{% if not late %}, before the {{ s.act_by.strftime("%-d %B %Y") }} deadline{% endif %}.
+{% endif %}
+Please confirm receipt in writing.
+
+{{ signer or "[name]" }}
+{{ company or "[your company]" }}</div>
+<p class="muted">This is a draft built from the confirmed values. It is not legal advice and it is not sent anywhere.
+Check the notice clause for how notice must be delivered (address, method, who signs).</p>
+{% if clause %}<h2>Notice clause</h2><blockquote>…{{ clause }}…</blockquote>{% endif %}
+{% endblock %}

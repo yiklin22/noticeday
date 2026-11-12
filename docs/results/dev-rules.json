@@ -1,29 +1,36 @@
 {
   "split": "dev",
   "method": "rules",
-  "contracts": 30,
+  "contracts": 407,
   "tallies": {
     "expiration": {
-      "false_alarm": 1,
-      "missed": 7,
-      "true_empty": 10,
-      "unscorable": 2,
-      "correct": 10
+      "false_alarm": 22,
+      "missed": 104,
+      "true_empty": 121,
+      "unscorable": 17,
+      "correct": 113,
+      "wrong": 30
     },
     "renewal": {
-      "missed": 2,
-      "true_empty": 22,
-      "correct": 6
+      "missed": 27,
+      "true_empty": 260,
+      "correct": 93,
+      "wrong": 4,
+      "false_alarm": 8,
+      "unscorable": 15
     },
     "notice": {
-      "true_empty": 24,
-      "missed": 2,
-      "correct": 3,
-      "false_alarm": 1
+      "true_empty": 311,
+      "missed": 27,
+      "correct": 57,
+      "false_alarm": 9,
+      "wrong": 1,
+      "unscorable": 2
     },
     "deadline": {
-      "flagged": 3,
-      "correct": 2
+      "flagged": 36,
+      "correct": 24,
+      "wrong": 8
     }
   }
 }

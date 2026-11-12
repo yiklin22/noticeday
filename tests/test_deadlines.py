@@ -33,3 +33,13 @@ def test_missing_facts_are_reported_not_guessed():
 
 def test_month_end_clamps():
     assert add_months(D(2024, 1, 31), 1) == D(2024, 2, 29)
+
+
+def test_renewal_limit_stops_rolling():
+    # Twelve months from 2017-11-30, "one (1) additional twelve month period", 90 days' notice.
+    args = (D(2017, 11, 30), None, Duration(12, "month"), Duration(12, "month"), True, Duration(90, "day"))
+    assert schedule(*args, today=D(2026, 11, 13)).act_by == D(2027, 9, 1)   # no limit known: wrong but rolls
+    s = schedule(*args, today=D(2026, 11, 13), renewal_limit=1)
+    assert s.status == "expired" and s.term_end == D(2019, 11, 30)
+    s = schedule(*args, today=D(2018, 10, 1), renewal_limit=1)
+    assert s.status == "expires" and s.term_end == D(2019, 11, 30)  # notice window for 2018 closed; final term

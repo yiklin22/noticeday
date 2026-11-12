@@ -3,7 +3,7 @@
 <h1>Upcoming deadlines <span class="muted" style="font-size:1rem;font-weight:400">as of {{ today }}</span></h1>
 {% if unconfirmed %}<p class="pill warn">{{ unconfirmed }} deadline{{ '' if unconfirmed == 1 else 's' }} not yet confirmed: they stay off the calendar until a person checks them.</p>{% endif %}
 <table>
-  <thead><tr><th>Contract</th><th>Status</th><th>Date</th><th class="hide-sm">Days left</th><th>Checked</th></tr></thead>
+  <thead><tr><th>Contract</th><th>Status</th><th>Date</th><th class="hide-sm">Days left</th><th>Checked</th>{% if second_on %}<th class="hide-sm">Second reader</th>{% endif %}</tr></thead>
   <tbody>
   {% for r in rows %}
     <tr>
@@ -12,6 +12,7 @@
       <td class="num">{{ r.s.act_by or r.s.term_end or "—" }}</td>
       <td class="num hide-sm {{ 'soon' if r.days is not none and r.days <= 60 }}">{{ r.days if r.days is not none else "" }}</td>
       <td>{% if r.c.confirmed_at %}<span class="pill ok">confirmed</span>{% else %}<span class="pill warn">to check</span>{% endif %}</td>
+      {% if second_on %}<td class="hide-sm">{% if r.second and 'disagree' in r.second and not r.second.startswith('0') %}<span class="pill warn">{{ r.second }}</span>{% else %}<span class="muted">{{ r.second or '' }}</span>{% endif %}</td>{% endif %}
     </tr>
   {% else %}
     <tr><td colspan="5" class="muted">No contracts yet. Add one below.</td></tr>

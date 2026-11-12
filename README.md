@@ -20,11 +20,23 @@ reading it correctly and having the date in front of someone in time.
 3. A person checks each value, edits it if needed, and confirms with their
    name. Editing after confirming clears the confirmation.
 4. The dashboard rolls auto-renewing terms forward to the next notice
-   deadline that is still open, and sorts contracts by it.
+   deadline that is still open, and sorts contracts by it. It stops at the
+   number of renewals the contract allows ("one (1) additional twelve month
+   period").
 5. `calendar.ics` holds only confirmed deadlines, each with a reminder
    14 days before.
+6. For a confirmed auto-renewing contract, it drafts a non-renewal notice
+   letter with the notice clause underneath. It never sends anything.
+7. Optional **second reader**: with `NOTICEDAY_MODEL` set, a local model
+   reads each upload in the background, about a minute per contract. Each
+   value is marked "agrees" or shows the model's different value with its
+   quote. Values the model could not back with a quote are listed as such.
 
 ![Contract review page](docs/screenshot.png)
+
+Second reader on the same page (before the renewal-limit and duration-comparison fixes it led to):
+
+![Second reader](docs/second-reader.png)
 
 ## How well it reads contracts: measured on CUAD
 
@@ -101,15 +113,29 @@ Full tables: `docs/results/test-*.md`. What the numbers say:
 - **union**: the rule value if there is one, otherwise the gated model value.
 - **agree**: a value only where rules and the gated model give the same one.
 
-The app uses the rules today: they are instant and need no model download.
-The model path is a batch script (`scripts/run_model.py`).
+The app always runs the rules (instant). The model runs as the optional
+second reader in the app, or in batch with `scripts/run_model.py`.
+
+**What the second reader caught on its first live run.** On a dev contract
+both readers agreed on everything except how to write the renewal ("12
+months" vs "1 year"; durations are now compared as durations). Its quote,
+"automatically renewed for **one (1) additional** twelve month period",
+showed a gap in the scheduler: it rolled the contract forward nine times to
+a 2027 deadline, but the contract allows one renewal and ended in 2019.
+Renewal limits are now extracted and respected. On the dev split the rules
+find 8 limits, all correct on inspection, but only 2 of the 6 renewal
+answers where the lawyers wrote a count. A missed limit is the most
+dangerous error left: it shows a deadline for a contract that has already
+ended. It is a reason the review step stays.
 
 ## Run it
 
 ```bash
 uv venv && uv pip install -e . pytest httpx
-pytest -q                                   # 18 tests
+pytest -q                                   # 23 tests
+python scripts/seed_demo.py demo.db         # needs data/cuad (below); or upload your own
 NOTICEDAY_DB=demo.db uvicorn noticeday.app:app --port 8830
+# second reader: add NOTICEDAY_MODEL=<Qwen3-4B-Instruct-2507 folder> and pip install -e '.[model]'; needs ~8 GB RAM
 ```
 
 Reproduce the measurements (downloads about 125 MB of CUAD data):
@@ -123,7 +149,6 @@ python scripts/evaluate.py --split test --method rules
 uv pip install -e '.[model]'                # torch + transformers, CPU is enough
 NOTICEDAY_MODEL=<folder with Qwen3-4B-Instruct-2507 weights> python scripts/run_model.py --split test
 for m in model_raw model union agree; do python scripts/evaluate.py --split test --method $m; done
-python scripts/seed_demo.py demo.db         # 8 dev-split contracts for the demo
 ```
 
 ## What this does not show
@@ -144,3 +169,9 @@ python scripts/seed_demo.py demo.db         # 8 dev-split contracts for the demo
 - **No login, no multi-user accounts, no email reminders.** The calendar
   file is the reminder channel. These would come before any real pilot.
 - Amendments that change the term are not linked to the original contract.
+- **Option deadlines are not tracked.** "Notify us six months before the end
+  of the term if you want to extend" is a deadline too. The model finds many
+  of them (see the notice false alarms above), but the app has no place for
+  them yet.
+- Evergreen month-to-month continuations ("thereafter continues on a month
+  to month basis until terminated") are often missed by the rules.

@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 
 from .text import Duration, find_dates, find_durations, normalize, sentences
 
-FIELDS = ("start_date", "end_date", "term", "renewal", "auto_renew", "notice")
+FIELDS = ("start_date", "end_date", "term", "renewal", "auto_renew", "notice", "renewal_limit")
 
 
 @dataclass
@@ -165,6 +165,14 @@ def _term(text: str, start_field):
     return None, None
 
 
+RENEWAL_LIMIT = re.compile(
+    r"\b(?:up\s+to\s+|a\s+maximum\s+of\s+|no\s+more\s+than\s+)?"
+    r"(?P<count>one|two|three|four|five|six|seven|eight|nine|ten|\d{1,2})\s*(?:\(\s*\d+\s*\)\s*)?"
+    r"(?:additional|further|more)\b(?:\s+\S+){0,4}?\s+(?:renewal\s+|extension\s+)?(?:term|period|year)s?\b",
+    re.I,
+)
+
+
 def _is_notice(text: str, ds: int, de: int, floor: int) -> bool:
     """A notice period for ending the term, not a cure period after a breach."""
     if not (NOTICE_AFTER.search(text[de: de + 60]) or NOTICE_BEFORE.search(text[max(floor, ds - 40): ds])):
@@ -194,13 +202,13 @@ def _renewal(text: str):
         if best is None or score > best[0]:
             best = (score, s, e)
     if best is None:
-        return None, None, None
+        return None, None, None, None
     _, s, e = best
     sent = text[s:e]
     r = RENEW.search(sent)
     renewal = notice = None
     if MUTUAL.search(sent) and not AUTO.search(sent):
-        return None, None, None
+        return None, None, None, None
     for dur, ds, de in find_durations(sent, s):
         is_notice = _is_notice(text, ds, de, s)
         if is_notice and dur.unit in ("day", "week", "month") or is_notice and notice is None and dur.unit == "year" and renewal:
@@ -223,11 +231,16 @@ def _renewal(text: str):
                 if dur.unit in ("day", "week", "month"):
                     notice = Field(dur, ds, de, "notice_next_sentence")
                     break
+    limit = RENEWAL_LIMIT.search(sent)
+    if limit:
+        from .text import words_to_int
+        count = int(limit.group("count")) if limit.group("count").isdigit() else words_to_int(limit.group("count"))
+        limit = Field(count, s + limit.start(), s + limit.end(), "renewal_limit") if count else None
     auto = bool(AUTO.search(sent)) and not OPTION.search(sent)
     auto_field = Field(auto, s + r.start(), s + r.end(), "auto" if auto else "option_or_unclear")
     if renewal is None and not auto:
-        return None, None, None
-    return renewal, auto_field, notice
+        return None, None, None, None
+    return renewal, auto_field, notice, limit
 
 
 def extract(raw_text: str) -> Extraction:
@@ -241,8 +254,8 @@ def extract(raw_text: str) -> Extraction:
         ex.fields["end_date"] = end
     if term:
         ex.fields["term"] = term
-    renewal, auto, notice = _renewal(text)
-    for name, f in (("renewal", renewal), ("auto_renew", auto), ("notice", notice)):
+    renewal, auto, notice, limit = _renewal(text)
+    for name, f in (("renewal", renewal), ("auto_renew", auto), ("notice", notice), ("renewal_limit", limit)):
         if f:
             ex.fields[name] = f
     return ex

@@ -7,9 +7,12 @@
   <div class="verdict">{{ status }}{% if s.act_by %}: <span class="num">{{ s.act_by }}</span>{% endif %}</div>
   <p style="margin:.3rem 0">{{ s.reason }}{% if s.term_end %} Current term ends <span class="num">{{ s.term_end }}</span>{% if s.cycles_rolled %} (after {{ s.cycles_rolled }} renewal{{ '' if s.cycles_rolled == 1 else 's' }}){% endif %}.{% endif %}</p>
   {% if c.confirmed_at %}<span class="pill ok">Confirmed by {{ c.confirmed_by }} at {{ c.confirmed_at }}</span>
+  {% if s.status in ("act_by", "renews_no_notice") %} <a href="/contracts/{{ c.id }}/letter">Draft a non-renewal notice</a>{% endif %}
   {% else %}<span class="pill warn">Not confirmed: check each value against its clause below</span>{% endif %}
 </div>
 
+{% if sec and sec.status == "failed" %}<p class="pill warn">Second reader failed: {{ sec.error }}</p>
+{% elif reader_on and not sec %}<p class="muted">Second reader (local model) is reading this contract; reload in a minute.</p>{% endif %}
 <form method="post">
 <table>
   <thead><tr><th style="width:30%">Fact</th><th>Value and where it came from</th></tr></thead>
@@ -21,6 +24,8 @@
     <td>
       {% if f.key in ("start_date", "end_date") %}
         <input type="text" name="{{ f.key }}" value="{{ f.value or '' }}" placeholder="YYYY-MM-DD{{ ' or perpetual' if f.key == 'end_date' }}">
+      {% elif f.key == "renewal_limit" %}
+        <input type="number" min="0" name="renewal_limit" value="{{ f.value if f.value is not none else '' }}"> <span class="muted">empty = renews with no limit</span>
       {% elif f.key == "auto_renew" %}
         <label><input type="checkbox" name="auto_renew" {{ 'checked' if f.value }}> renews unless someone gives notice</label>
       {% else %}
@@ -28,6 +33,9 @@
         <select name="{{ f.key }}_unit">{% for u in ("day", "week", "month", "year") %}<option {{ 'selected' if u == f.unit }}>{{ u }}</option>{% endfor %}</select>
       {% endif %}
       {% if f.quote %}<blockquote>…{{ f.quote[0] }}<mark>{{ f.quote[1] }}</mark>{{ f.quote[2] }}…</blockquote>{% endif %}
+      {% if f.cmp == "agree" %}<p class="muted" style="margin:.3rem 0 0;font-size:.85rem">Second reader agrees.</p>
+      {% elif f.cmp == "disagree" or f.cmp == "only_one" and f.second is not none %}<p style="margin:.3rem 0 0;font-size:.85rem"><span class="pill warn">Second reader: {{ f.second }}</span>{% if f.second_quote %} “{{ f.second_quote }}”{% endif %}</p>
+      {% elif f.cmp == "only_one" %}<p class="muted" style="margin:.3rem 0 0;font-size:.85rem">Second reader found nothing{% if f.dropped %} it could back with a quote ({{ f.dropped }}){% endif %}.</p>{% endif %}
     </td>
   </tr>
   {% endfor %}
