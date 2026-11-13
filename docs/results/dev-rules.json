@@ -4,12 +4,12 @@
   "contracts": 407,
   "tallies": {
     "expiration": {
-      "false_alarm": 22,
-      "missed": 104,
-      "true_empty": 121,
+      "false_alarm": 21,
+      "missed": 88,
+      "true_empty": 122,
       "unscorable": 17,
-      "correct": 113,
-      "wrong": 30
+      "correct": 132,
+      "wrong": 27
     },
     "renewal": {
       "missed": 28,
@@ -28,9 +28,9 @@
       "unscorable": 2
     },
     "deadline": {
-      "flagged": 36,
-      "correct": 24,
-      "wrong": 8
+      "flagged": 33,
+      "correct": 29,
+      "wrong": 6
     }
   }
 }

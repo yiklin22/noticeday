@@ -5,8 +5,8 @@
   "tallies": {
     "expiration": {
       "true_empty": 27,
-      "wrong": 8,
-      "correct": 37,
+      "wrong": 7,
+      "correct": 38,
       "false_alarm": 10,
       "missed": 14,
       "unscorable": 6

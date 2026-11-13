@@ -5,9 +5,9 @@
   "tallies": {
     "expiration": {
       "true_empty": 33,
-      "wrong": 9,
-      "correct": 26,
-      "missed": 24,
+      "wrong": 7,
+      "correct": 27,
+      "missed": 25,
       "unscorable": 6,
       "false_alarm": 4
     },
@@ -26,8 +26,8 @@
     },
     "deadline": {
       "wrong": 2,
-      "flagged": 6,
-      "correct": 2
+      "flagged": 5,
+      "correct": 3
     }
   }
 }

@@ -49,7 +49,7 @@ TERM_SENTENCE = re.compile(
     re.I,
 )
 END_CUE = re.compile(
-    r"(?:expiration\s+date\"?\s+(?:means|shall\s+mean|is)|until|through|expire[sd]?\s+(?:at\s+[^,;]{0,40}?\s+)?on|terminate[sd]?\s+on|ending\s+on|end\s+on|expiring\s+on|thru)"
+    r"(?:expiration\s+date\"?\s+(?:means|shall\s+mean|is)|until(?:\s+the\s+earlier\s+of\s*:?\s*(?:\(?(?:i|a|1)\)\s*)?)?|through(?:\s+and\s+including)?|up\s+to(?:\s+and\s+including)?|expire[sd]?\s+(?:at\s+[^,;]{0,40}?\s+)?on|terminate[sd]?\s+on|ending\s+on|end\s+on|expiring\s+on|thru)"
     r"\s*(?:the\s+)?(?:close\s+of\s+business\s+on\s+|midnight\s+(?:on\s+)?|11:59\s*p\.?m\.?[^,]{0,30}?on\s+)?$",
     re.I,
 )
@@ -72,15 +72,19 @@ NOTICE_CONTEXT = re.compile(r"renew|expir|end\s+of\s+(?:the|such|any|its)\s+(?:t
 STRONG_TERM = re.compile(
     r"term\s+of\s+(?:this|the)\s+\w+|initial\s+term|\"?expiration\s+date\"?\s+(?:means|shall\s+mean|is)|\"term\"|the\s+term\s+(?:shall|will|is)|"
     r"(?:this|the)\s+agreement\s+(?:shall|will|is|becomes?)\s+(?:be\s+)?(?:become\s+)?(?:commence|begin|continue|remain|expire|terminate|effective|in\s+(?:full\s+)?(?:force|effect))|"
-    r"(?:agreement|contract)\s+(?:shall|will)\s+(?:have|run)|entered\s+into\s+for|contract\s+period|engagement",
+    r"(?:agreement|contract)\s+(?:shall|will)\s+(?:have|run)|entered\s+into\s+for|contract\s+period|engagement|"
+    r"(?:this|the)\s+agreement\s+(?:shall|will)\s+(?:take\s+effect|be\s+valid|be\s+deemed\s+effective)|"
+    r"(?:shall|will)\s+(?:expire|terminate)\s+on\b|come\s+into\s+force|remain\s+valid|have\s+a\s+duration|"
+    r"\bterm\s*:\s*(?:\w+\s+\d{1,2}\b|\d)|expiration\s+date\"?\s*:|(?:effective|initial|fixed)\s+term\s+(?:is|shall\s+be|will\s+be)\b",
     re.I,
 )
-SURVIVAL = re.compile(r"^[^.;]{0,30}?\b(?:after|following|thereafter|beyond|post)\b(?:[^.;]{0,50}?(?:terminat|expir)|)", re.I)
+SURVIVAL = re.compile(r"^[^.;]{0,30}?\b(?:after|following|beyond|post)\b[^.;]{0,50}?(?:terminat|expir)", re.I)
+THEREAFTER = re.compile(r"^[^.;]{0,30}?\bthereafter\b", re.I)
 ORDINALS = {"first": 1, "second": 2, "third": 3, "fourth": 4, "fifth": 5, "sixth": 6, "seventh": 7,
             "eighth": 8, "ninth": 9, "tenth": 10, "fifteenth": 15, "twentieth": 20, "twenty-fifth": 25}
 ANNIVERSARY = re.compile(
-    r"(?:(?P<word>" + "|".join(ORDINALS) + r")\s*(?:\(\s*\d+\s*(?:st|nd|rd|th)?\s*\)\s*)?|(?P<num>\d+)\s*(?:st|nd|rd|th))\s+"
-    r"(?:anniversary|(?<=end of the )(?:\w+\s+)?(?:contract\s+|agreement\s+|lease\s+)?year\b)",
+    r"(?:(?P<word>" + "|".join(ORDINALS) + r")(?:\s*\(\s*\d+\s*(?:st|nd|rd|th)?\s*\))?|(?P<num>\d+)\s*(?:st|nd|rd|th))\s+"
+    r"(?:anniversary|(?:contract|agreement|lease)\s+year\b)",
     re.I,
 )
 NOTICE_AFTER = re.compile(
@@ -140,17 +144,39 @@ def _term(text: str, start_field):
     for score, s, e in _term_sentences(text)[:8]:
         sent = text[s:e]
         # Stop before text about what happens after the initial term.
-        later = [m.start() for m in (RENEW.search(sent), AFTER_TERM.search(sent)) if m]
+        first_value = min([ds - s for _, ds, _ in find_dates(sent, s)[:1]] +
+                          [ds - s for _, ds, _ in list(find_durations(sent, s))[:1]] + [len(sent)])
+        # "after the initial term" always ends the initial term's text; a bare
+        # "thereafter" only does once a date or duration has been stated.
+        after = next((m for m in AFTER_TERM.finditer(sent)
+                      if m.start() > first_value or not m.group().lower().startswith("thereafter")), None)
+        later = [m.start() for m in (RENEW.search(sent), after) if m]
         cut = min(later) if later else len(sent)
         for d, ds, de in find_dates(sent, s):
             if ds - s > cut:
                 break
-            if END_CUE.search(text[max(s, ds - 80): ds]) or END_CUE_EXTRA.search(text[max(s, ds - 40): ds]):
+            if (END_CUE.search(text[max(s, ds - 80): ds]) or END_CUE_EXTRA.search(text[max(s, ds - 40): ds])
+                    or re.search(r"\d{4}\s*(?:to|-|\u2013)\s*$", text[max(s, ds - 12): ds])):
                 return Field(d, ds, de, "end_date"), None
         for dur, ds, de in find_durations(sent[:cut], s):
             if dur.unit not in ("year", "month"):
                 continue
             if SURVIVAL.search(text[de: de + 90]):
+                continue
+            before = text[s:ds]
+            if THEREAFTER.search(text[de: de + 60]) and (
+                    re.search(r"terminat|expir", before[-80:], re.I)
+                    or re.search(r"during\s+the\s+term|term\s+of\s+this\s+agreement\s+and", before, re.I)
+                    or not re.search(r"commenc|effective|begin|start|execut", before, re.I)):
+                continue
+            # "every 12 months", "within the first six months": not the term's length.
+            if re.search(r"\b(?:every|each|within|first|next|per)\s+(?:\w+\s+)?$", text[max(s, ds - 20): ds], re.I):
+                continue
+            # A term counted from an event ("ten years after the First Commercial
+            # Sale") has no fixed end date; leave it for a person.
+            m = re.match(r"\s*(?:\(\w+\)\s*)?(?:after|following|from)\s+(?:the\s+)?(.{0,40})", text[de: de + 60], re.I)
+            if m and not re.match(r"(?:effective|commencement|execution|signing|start|beginning|date\s+(?:hereof|of\s+this|first|signed|of\s+execution|of\s+signature)|such\s+date|this\s+agreement)",
+                                  m.group(1), re.I):
                 continue
             if NOTICE_AFTER.search(text[de: de + 60]) and not re.match(r"\s*(?:from|after|following|commencing)", text[de: de + 30], re.I):
                 continue

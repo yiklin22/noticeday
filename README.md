@@ -120,6 +120,34 @@ Full tables: `docs/results/test-*.md`. What the numbers say:
 - Speed: the 4B model took 46 s per contract on 8 CPU threads (79 minutes
   for 102 contracts); the rules take about 10 ms.
 
+### After the test run: term-rule fixes (13 Nov 2026)
+
+The table above is the one run on the frozen code. Afterwards, working on
+the dev split only, I fixed why the rules missed 104 dev expiration dates:
+
+- **The survival filter was too broad.** Any "after", "following" or
+  "thereafter" next to a duration counted as a survival clause, so "three (3)
+  years after the Effective Date" and "ten (10) years thereafter" were thrown
+  away. Now it only counts when the words refer to termination or expiry, or
+  follow "during the term".
+- **Terms that count from an event** ("ten (10) years after the First
+  Commercial Sale") are left for a person, because they have no fixed end
+  date.
+- **More ways to state the end:** "take effect", "come into force",
+  "up to and including", "until the earlier of (i)", "TERM: <date> to <date>".
+
+| split | method | expiration before | expiration after | deadline before | deadline after |
+|---|---|---|---|---|---|
+| dev | rules | 45.7% (113/247), 30 wrong, 22 FA | 53.4% (132/247), 27 wrong, 21 FA | 24 right, 8 wrong | 29 right, 6 wrong |
+| test | rules | 44.1% (26/59), 9 wrong, 4 FA | 45.8% (27/59), 7 wrong, 4 FA | 2/10, 2 wrong | 3/10, 2 wrong |
+| test | union | 62.7% (37/59), 8 wrong, 10 FA | 64.4% (38/59), 7 wrong, 10 FA | 4/10, 3 wrong | 4/10, 3 wrong |
+
+The test split was run a second time to get the "after" figures, so it is no
+longer untouched. The gain on test (+1 correct, -2 wrong) is much smaller
+than on dev (+19 correct, -3 wrong): most of the dev gain came from wording
+that is common in the dev contracts, and it does not carry over to new
+contracts as strongly. Renewal and notice figures did not change.
+
 ## Extraction methods
 
 - **rules** (`noticeday/extract.py`): regular expressions for dates,
@@ -157,7 +185,7 @@ ended. It is a reason the review step stays.
 
 ```bash
 uv venv && uv pip install -e . pytest httpx
-pytest -q                                   # 29 tests (4 need '.[mcp]')
+pytest -q                                   # 32 tests (4 need '.[mcp]')
 python scripts/seed_demo.py demo.db         # needs data/cuad (below); or upload your own
 NOTICEDAY_DB=demo.db uvicorn noticeday.app:app --port 8830
 # second reader: add NOTICEDAY_MODEL=<Qwen3-4B-Instruct-2507 folder> and pip install -e '.[model]'; needs ~8 GB RAM

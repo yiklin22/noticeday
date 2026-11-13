@@ -6,8 +6,8 @@
     "expiration": {
       "true_empty": 34,
       "wrong": 2,
-      "correct": 16,
-      "missed": 41,
+      "correct": 17,
+      "missed": 40,
       "unscorable": 6,
       "false_alarm": 3
     },

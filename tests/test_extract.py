@@ -51,3 +51,33 @@ def test_option_notice_only_when_renewal_is_not_automatic():
                  "Initial Term, it must notify Supplier in writing at least six (6) months prior to the end of the Initial Term.")
     assert ex.get("option_notice") == Duration(6, "month")
     assert extract(CONTRACT).get("option_notice") is None
+
+
+def test_term_counted_from_effective_date():
+    # "after"/"following"/"thereafter" next to a term length is not a survival clause.
+    assert extract("This Agreement shall commence on the Effective Date and continue for a period of three (3) "
+                   "years after the Effective Date.").get("term") == Duration(3, "year")
+    assert extract("This Agreement shall commence on the Effective Date and continue thereafter for a period of "
+                   "two (2) years, unless sooner terminated.").get("term") == Duration(2, "year")
+    assert extract("Unless sooner terminated, this Agreement will continue in full force beginning on the Effective "
+                   "Date and ending two (2) years thereafter.").get("term") == Duration(2, "year")
+
+
+def test_survival_and_event_terms_are_not_the_term():
+    ex = extract("During the term of this Agreement and for a period of two (2) years thereafter, Supplier shall not "
+                 "compete with Buyer.")
+    assert ex.get("term") is None
+    ex = extract("This Agreement shall commence on the Effective Date and shall remain in full force for ten (10) years "
+                 "after the First Commercial Sale of the first Licensed Product.")
+    assert ex.get("term") is None
+    ex = extract("The term of this Agreement shall be one (1) year. Contractor and Customer will meet every three (3) "
+                 "months during the term of this Agreement.")
+    assert ex.get("term") == Duration(1, "year")
+
+
+def test_more_ways_to_state_the_end():
+    assert extract("Unless earlier terminated, this Agreement shall take effect on December 1st, 2015 and shall "
+                   "expire on November 30, 2016.").get("end_date") == dt.date(2016, 11, 30)
+    assert extract("The initial term of the Services shall continue up to and including 28 February 2000.").get(
+        "end_date") == dt.date(2000, 2, 28)
+    assert extract("TERM: November 01, 2014 to October 31, 2017").get("end_date") == dt.date(2017, 10, 31)
