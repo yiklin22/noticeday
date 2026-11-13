@@ -8,6 +8,7 @@ license = { text = "MIT" }
 dependencies = ["fastapi", "uvicorn", "jinja2", "python-multipart", "pdfplumber"]
 
 [project.optional-dependencies]
+mcp = ["mcp>=2.3"]
 model = ["torch", "transformers", "accelerate"]
 
 [dependency-groups]

@@ -40,6 +40,29 @@ Second reader on the same page (before the renewal-limit and duration-comparison
 
 ![Second reader](docs/second-reader.png)
 
+## Ask Claude about your deadlines (MCP server)
+
+`noticeday/mcp_server.py` exposes the contract database to Claude Desktop or
+Claude Code over MCP. Three read-only tools:
+
+- `list_deadlines(within_days, confirmed_only)`: what is due, soonest first.
+- `get_contract(contract_id)`: the schedule, each value, and the contract words
+  it was read from.
+- `search_contracts(query)`: find a contract by name or wording.
+
+There are no write tools on purpose. An assistant cannot confirm or edit a
+value; every answer says whether a person has confirmed it, and the server's
+instructions tell the assistant to say so. Confirming stays in the web app.
+
+```bash
+uv pip install -e '.[mcp]'
+claude mcp add noticeday -e NOTICEDAY_DB=$PWD/demo.db -- $PWD/.venv/bin/python -m noticeday.mcp_server
+```
+
+Then ask "which contracts need notice in the next six months?". Tested with
+the MCP Python SDK client in-process (`tests/test_mcp.py`) and over stdio on
+the demo database.
+
 ## How well it reads contracts: measured on CUAD
 
 [CUAD](https://github.com/TheAtticusProject/cuad) is 510 real commercial
@@ -134,7 +157,7 @@ ended. It is a reason the review step stays.
 
 ```bash
 uv venv && uv pip install -e . pytest httpx
-pytest -q                                   # 25 tests
+pytest -q                                   # 29 tests (4 need '.[mcp]')
 python scripts/seed_demo.py demo.db         # needs data/cuad (below); or upload your own
 NOTICEDAY_DB=demo.db uvicorn noticeday.app:app --port 8830
 # second reader: add NOTICEDAY_MODEL=<Qwen3-4B-Instruct-2507 folder> and pip install -e '.[model]'; needs ~8 GB RAM
