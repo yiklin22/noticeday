@@ -85,7 +85,7 @@ class Duration:
 
 DURATION_RE = re.compile(
     r"(?:(?P<num>\d+)|(?P<words>[a-z]+(?:[\s-][a-z]+){0,4}))"
-    r"\s*(?:\(\s*(?P<par>\d+)\s*\)\s*)?(?:-|\s)*"
+    r"\s*(?:\(\s*(?:(?P<par>\d+)|[IVX]+)\s*\)\s*)?(?:-|~|\s)*"
     r"(?:calendar\s+|business\s+|working\s+|consecutive\s+)?"
     r"(?P<unit>year|month|day|week)s?\b",
     re.IGNORECASE,

@@ -12,9 +12,9 @@
       "false_alarm": 4
     },
     "renewal": {
-      "true_empty": 75,
+      "true_empty": 76,
       "correct": 17,
-      "false_alarm": 3,
+      "false_alarm": 2,
       "missed": 6,
       "unscorable": 1
     },

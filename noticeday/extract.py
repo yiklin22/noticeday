@@ -60,7 +60,12 @@ PERPETUAL = re.compile(
 )
 END_CUE_EXTRA = re.compile(r"(?:concluding|ending|terminating|expiring)\s*(?:on\s+)?$", re.I)
 AFTER_TERM = re.compile(r"after\s+(?:the\s+)?(?:expiration\s+of\s+the\s+)?(?:initial|original)\s+term|\bthereafter\b", re.I)
-RENEW = re.compile(r"renew|successive|automatically\s+extend|extended\s+automatically|extended\s+for|additional\s+(?:term|period)s?\b", re.I)
+# Where the initial term's text stops (renewal talk starts). Kept narrower than
+# RENEW so a "continues month to month" phrase does not cut the term sentence.
+RENEW_CUT = re.compile(r"renew|successive|automatically\s+extend|extended\s+automatically|extended\s+for|additional\s+(?:term|period)s?\b", re.I)
+RENEW = re.compile(r"renew|successive|automatically\s+extend|extend(?:ed)?\s+automatically|automatic\s+extension|extended\s+(?:for|by)|"
+                   r"additional\s+(?:term|period)s?\b|continue\s+(?:on\s+a\s+|thereafter\s+)?(?:month[\s-]+to[\s-]+month|year[\s-]+to[\s-]+year)|"
+                   r"(?:effective|continue)\s+(?:on\s+a\s+)?month[\s-]+to[\s-]+month|from\s+year\s+to\s+year", re.I)
 AUTO = re.compile(
     r"automatic|unless\s+(?:either|one|a)\s+part|unless\s+.{0,80}?notice|shall\s+(?:be\s+)?(?:renew|extend)|will\s+(?:be\s+)?(?:renew|extend)",
     re.I,
@@ -90,8 +95,10 @@ ANNIVERSARY = re.compile(
 NOTICE_AFTER = re.compile(
     r"^(?:[^.;]{0,60}?\b(?:prior|before|in\s+advance|preceding)\b|['\u2019]?s?\s*(?:advance\s+|prior\s+)?(?:written\s+)?notice)", re.I)
 IMPLICIT_RENEWAL = [
-    (re.compile(r"year[\s-]+to[\s-]+year|(?:annual|yearly)\s+basis|annually\s+renew|renew\s+annually|an\s+additional\s+year|one\s+further\s+year|annual\s+(?:renewal\s+)?(?:period|term)s?", re.I), Duration(1, "year")),
+    (re.compile(r"year[\s-]+to[\s-]+year|(?:annual|yearly)\s+basis|annually\s+renew|renew(?:s|ed|ing)?\s+(?:tacitly\s+)?(?:annually|every\s+year|each\s+year)|"
+                r"an\s+additional\s+year|one\s+further\s+year|annual\s+(?:renewal\s+)?(?:period|term)s?|annual\s+renewals?", re.I), Duration(1, "year")),
     (re.compile(r"month[\s-]+to[\s-]+month|monthly\s+(?:basis|periods?)|an\s+additional\s+month", re.I), Duration(1, "month")),
+    (re.compile(r"half\s+a\s+year", re.I), Duration(6, "month")),
 ]
 NOTICE_BEFORE = re.compile(r"notice[^.;]{0,40}$", re.I)
 
@@ -150,7 +157,7 @@ def _term(text: str, start_field):
         # "thereafter" only does once a date or duration has been stated.
         after = next((m for m in AFTER_TERM.finditer(sent)
                       if m.start() > first_value or not m.group().lower().startswith("thereafter")), None)
-        later = [m.start() for m in (RENEW.search(sent), after) if m]
+        later = [m.start() for m in (RENEW_CUT.search(sent), after) if m]
         cut = min(later) if later else len(sent)
         for d, ds, de in find_dates(sent, s):
             if ds - s > cut:
@@ -303,6 +310,10 @@ def extract(raw_text: str) -> Extraction:
     if term:
         ex.fields["term"] = term
     renewal, auto, notice, limit = _renewal(text)
+    if renewal is None and auto and auto.value and term:
+        sent = text[auto.start: auto.start + 300]
+        if re.search(r"same\s+(?:duration|length|period)|equal\s+(?:in\s+length\s+)?to\s+the\s+initial\s+term", sent, re.I):
+            renewal = Field(term.value, auto.start, auto.end, "same_as_initial_term")
     for name, f in (("renewal", renewal), ("auto_renew", auto), ("notice", notice), ("renewal_limit", limit)):
         if f:
             ex.fields[name] = f

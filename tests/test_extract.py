@@ -81,3 +81,18 @@ def test_more_ways_to_state_the_end():
     assert extract("The initial term of the Services shall continue up to and including 28 February 2000.").get(
         "end_date") == dt.date(2000, 2, 28)
     assert extract("TERM: November 01, 2014 to October 31, 2017").get("end_date") == dt.date(2017, 10, 31)
+
+
+def test_more_ways_to_state_a_renewal():
+    def ren(t):
+        return extract(t).get("renewal")
+    assert ren("The term of this Agreement shall be one (1) year commencing on the Effective Date and automatically "
+               "renewing annually thereafter, unless either party provides notice.") == Duration(1, "year")
+    assert ren("This Agreement will extend automatically for monthly periods unless either party notifies the other "
+               "party in writing at least thirty (30) days before the expiration of the then current term.") == Duration(1, "month")
+    assert ren("This Agreement shall automatically renew beyond the Initial Term for successive one (I) year terms.") == Duration(1, "year")
+    assert ren("The Initial Term shall automatically be extended for an additional period of half a year unless "
+               "either party provides notice.") == Duration(6, "month")
+    ex = extract("The initial term of this Agreement is five (5) years. Upon expiry of the Initial Term this Agreement "
+                 "shall automatically renew for successive terms of the same duration, unless either party gives notice.")
+    assert ex.get("renewal") == Duration(5, "year")

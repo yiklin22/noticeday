@@ -138,12 +138,22 @@ the dev split only, I fixed why the rules missed 104 dev expiration dates:
 
 | split | method | expiration before | expiration after | deadline before | deadline after |
 |---|---|---|---|---|---|
-| dev | rules | 45.7% (113/247), 30 wrong, 22 FA | 53.4% (132/247), 27 wrong, 21 FA | 24 right, 8 wrong | 29 right, 6 wrong |
+| dev | rules | 45.7% (113/247), 30 wrong, 22 FA | 53.4% (132/247), 28 wrong, 21 FA | 24 right, 8 wrong | 28 right, 8 wrong |
 | test | rules | 44.1% (26/59), 9 wrong, 4 FA | 45.8% (27/59), 7 wrong, 4 FA | 2/10, 2 wrong | 3/10, 2 wrong |
 | test | union | 62.7% (37/59), 8 wrong, 10 FA | 64.4% (38/59), 7 wrong, 10 FA | 4/10, 3 wrong | 4/10, 3 wrong |
 
-The test split was run a second time to get the "after" figures, so it is no
-longer untouched. The gain on test (+1 correct, -2 wrong) is much smaller
+**Renewal wording (same day).** A second pass on dev added renewal phrasings
+the rules missed: "renewing annually", "renewed tacitly every year",
+"extend automatically for monthly periods", "half a year", Roman numerals
+("one (I) year"), and "successive terms of the same duration" (the renewal
+equals the initial term). Dev renewal went from 74.2% (92/124, 4 wrong) to
+83.9% (104/124, 3 wrong); dev notice from 57 to 59 correct. On test it
+changed nothing that counts: renewal stays 17/23 (one fewer false alarm).
+Two dev deadlines moved from "needs facts" to wrong: the renewal is now
+found, and the start date was a few days off, which is the known weak point.
+
+The test split was run several times to get the "after" figures (once per
+change, no test-driven edits), so it is no longer untouched. The gain on test (+1 correct, -2 wrong) is much smaller
 than on dev (+19 correct, -3 wrong): most of the dev gain came from wording
 that is common in the dev contracts, and it does not carry over to new
 contracts as strongly. Renewal and notice figures did not change.
@@ -185,7 +195,7 @@ ended. It is a reason the review step stays.
 
 ```bash
 uv venv && uv pip install -e . pytest httpx
-pytest -q                                   # 32 tests (4 need '.[mcp]')
+pytest -q                                   # 33 tests (4 need '.[mcp]')
 python scripts/seed_demo.py demo.db         # needs data/cuad (below); or upload your own
 NOTICEDAY_DB=demo.db uvicorn noticeday.app:app --port 8830
 # second reader: add NOTICEDAY_MODEL=<Qwen3-4B-Instruct-2507 folder> and pip install -e '.[model]'; needs ~8 GB RAM
