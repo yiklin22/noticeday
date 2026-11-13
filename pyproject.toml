@@ -23,3 +23,7 @@ packages = ["noticeday"]
 
 [tool.setuptools.package-data]
 noticeday = ["templates/*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+markers = ["model: needs the local model weights (several GB); CI skips these with -m 'not model'"]

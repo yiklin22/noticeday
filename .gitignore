@@ -6,3 +6,9 @@ data/cuad/
 .cache/
 *.db
 noticeday.egg-info/
+*.db-journal
+*.sqlite
+*.sqlite3
+.env
+.env.*
+.pytest_cache/
