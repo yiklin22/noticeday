@@ -107,3 +107,16 @@ def test_start_date_skips_filing_footers_and_other_documents():
     assert ex.get("start_date") is None
     ex = extract("This Agreement is dated May 4, 2017 (the \"Effective Date\") between A and B.")
     assert ex.get("start_date") == dt.date(2017, 5, 4)
+
+
+def test_notice_for_stopping_a_continuation():
+    ex = extract("After the Initial Term, this Agreement shall continue on a month to month basis until terminated by "
+                 "either party upon thirty (30) days prior written notice to the other.")
+    assert ex.get("notice") == Duration(30, "day")
+    ex = extract("Upon expiration of the Initial Term, this Agreement shall automatically renew for consecutive one (1) "
+                 "year periods, unless terminated by Reseller within sixty (60) days prior to the expiration of the term.")
+    assert ex.get("notice") == Duration(60, "day")
+    # A cure period is still not a notice period.
+    ex = extract("This Agreement shall automatically renew for successive one (1) year terms. Either party may terminate "
+                 "if the other fails to cure a breach within thirty (30) days after written notice.")
+    assert ex.get("notice") is None

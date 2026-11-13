@@ -21,16 +21,16 @@
     },
     "notice": {
       "true_empty": 311,
-      "missed": 25,
-      "correct": 59,
+      "correct": 62,
       "false_alarm": 9,
+      "missed": 22,
       "wrong": 1,
       "unscorable": 2
     },
     "deadline": {
-      "flagged": 34,
-      "correct": 28,
-      "wrong": 6
+      "correct": 29,
+      "flagged": 32,
+      "wrong": 7
     }
   }
 }

@@ -73,7 +73,10 @@ AUTO = re.compile(
 OPTION = re.compile(r"\bmay\s+(?:be\s+)?(?:renew|extend)|option\s+to\s+(?:renew|extend)|right\s+to\s+(?:renew|extend)|renewable", re.I)
 MUTUAL = re.compile(r"mutual(?:ly)?\s+(?:written\s+)?(?:agree|consent)|by\s+mutual|upon\s+mutual|written\s+agreement\s+of\s+(?:both|the)\s+parties|parties\s+(?:may\s+)?agree|agree(?:s|d)?\s+in\s+writing|satisfactory\s+agreement|to\s+be\s+agreed", re.I)
 CURE = re.compile(r"within\s*$|cure|breach|default", re.I)
-NOTICE_CONTEXT = re.compile(r"renew|expir|end\s+of\s+(?:the|such|any|its)\s+(?:then[- ]current\s+|initial\s+|renewal\s+)?term|extend|extension", re.I)
+NOTICE_CONTEXT = re.compile(r"renew|expir|end\s+of\s+(?:the|such|any|its)\s+(?:then[- ]current\s+|initial\s+|renewal\s+)?term|extend|extension|"
+                            # an open-ended continuation: its notice period is how it is stopped
+                            r"month[\s-]+to[\s-]+month|year[\s-]+to[\s-]+year|continue[^.;]{0,60}until\s+(?:it\s+is\s+)?terminated|"
+                            r"automatically\s+continue|continue[^.;]{0,40}until\s+(?:either|one)\s+party\s+gives", re.I)
 STRONG_TERM = re.compile(
     r"term\s+of\s+(?:this|the)\s+\w+|initial\s+term|\"?expiration\s+date\"?\s+(?:means|shall\s+mean|is)|\"term\"|the\s+term\s+(?:shall|will|is)|"
     r"(?:this|the)\s+agreement\s+(?:shall|will|is|becomes?)\s+(?:be\s+)?(?:become\s+)?(?:commence|begin|continue|remain|expire|terminate|effective|in\s+(?:full\s+)?(?:force|effect))|"
@@ -222,7 +225,10 @@ def _is_notice(text: str, ds: int, de: int, floor: int) -> bool:
     """A notice period for ending the term, not a cure period after a breach."""
     if not (NOTICE_AFTER.search(text[de: de + 60]) or NOTICE_BEFORE.search(text[max(floor, ds - 40): ds])):
         return False
-    if CURE.search(text[max(floor, ds - 25): ds]) or re.match(r"[^.;]{0,30}?after\s+(?:receipt|receiving|being\s+given|the\s+giving|such\s+notice|notice|written\s+notice)", text[de: de + 60], re.I):
+    cure = CURE.search(text[max(floor, ds - 25): ds])
+    if cure and cure.group().lower().startswith("within") and re.match(r"[^.;]{0,30}?\b(?:prior|before)\b", text[de: de + 40], re.I):
+        cure = None  # "within sixty (60) days prior to the expiration" is a notice window, not a cure period
+    if cure or re.match(r"[^.;]{0,30}?after\s+(?:receipt|receiving|being\s+given|the\s+giving|such\s+notice|notice|written\s+notice)", text[de: de + 60], re.I):
         return False
     return bool(NOTICE_CONTEXT.search(text[max(floor, ds - 150): de + 150]))
 
