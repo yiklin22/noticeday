@@ -40,9 +40,11 @@ class Extraction:
 EFFECTIVE_CUES = [
     # The term clause's own start beats the signing date: "The term of this Agreement shall commence on ...",
     # "commencing the 1st day of September 2004", "The commencement date for this contract will be ...".
-    (re.compile(r"(?:(?:(?<!renewal\s)(?<!extension\s)(?<!additional\s)\bterm\b|\bthis\s+\w+|\bappointment\b|\bfranchise\b)(?:(?!renew|extension)[^.;]){0,80}?"
-                r"(?:shall|will|to)\s+(?:commence|begin|start)\s+(?:on|as\s+of)|"
-                r"(?:(?<!renewal\s)(?<!extension\s)(?<!additional\s)\bterm\b|\bthis\s+\w+)(?:(?!renew|extension)[^.;]){0,80}?,?\s+commencing(?:\s+on)?|"
+    # The subject must be the contract or its term, so a sub-document's term ("The term of each Statement of
+    # Work shall commence on ...") or a party's activity ("the Reseller shall start on ...") does not count.
+    (re.compile(r"(?:(?:(?:\b(?:the|initial)\s+term|\bterm\s+of\s+(?:this|the)\s+(?:agreement|contract|franchise|lease))|\bthis\s+\w+|"
+                r"\b(?:the\s+)?appointment|\bthe\s+franchise)\s*(?:\([^)]{0,40}\)\s*)?(?:shall|will|is\s+to)\s+(?:commence|begin|start)\s+(?:on|as\s+of)|"
+                r"(?:\b(?:the|initial)\s+term|\bterm\s+of\s+(?:this|the)\s+(?:agreement|contract|franchise|lease))(?:(?!renew|extension)[^.;]){0,80}?,?\s+commencing(?:\s+on)?|"
                 r"commencement\s+date[^.;]{0,30}?(?:will\s+be|shall\s+be|is|means:?)|"
                 r"effective\s+date\s+of\s+the\s+\w+\s+(?:will|shall)\s+be)\s*(?:the\s+)?$", re.I), 4.5, "commence"),
     (re.compile(r"effective(?:\s+date)?[\s\"'\)]*(?:as\s+of|on|from|is|shall\s+be|means|:)?[\s\"'(]*(?:the\s+)?$", re.I), 4, "effective"),
@@ -121,7 +123,7 @@ def _start_date(text: str):
     best = None
     head = max(3000, len(text) // 5)
     for d, s, e in find_dates(text):
-        window = text[max(0, s - 90): s]
+        window = text[max(0, s - 200): s]  # wide enough for "The Term of this Agreement shall be for ... commencing"
         # Filing footers ("Source: ACME INC, 10-K, 3/21/2019") are not the contract's date.
         if re.search(r"Source:\s*[^,]{1,60}(?:,[^,]{1,30}){1,3},\s*$|\b(?:10-K|10-Q|8-K|S-1|F-1|20-F|10KSB|1-A|SB-2|S-4|10-12G)(?:/A)?\s*,\s*$",
                      text[max(0, s - 90): s]):
@@ -157,11 +159,12 @@ def _start_date(text: str):
     if best and best[1].rule == "first_date":
         # Signature blocks list one date per signer ("Date: 1/19/07 Date: January 22, 2007");
         # the contract takes effect when the last party signs.
+        # Only a pair of dates, and only inside a signature block.
         f = best[1]
-        for d, s, e in find_dates(text[f.end: f.end + 60], f.end):
-            if not re.fullmatch(r"[\s:]*(?:dated?|date\s+signed)?[\s:]*", text[f.end:s], re.I) or d <= f.value or (d - f.value).days > 60:
-                break
-            f = Field(d, s, e, "last_signature")
+        if re.search(r"/s/|\bBy\s*:|signature", text[max(0, f.start - 250): f.start], re.I):
+            for d, s, e in find_dates(text[f.end: f.end + 60], f.end)[:1]:
+                if re.fullmatch(r"[\s:]*(?:dated?|date\s+signed)?[\s:]*", text[f.end:s], re.I) and f.value < d <= f.value + dt.timedelta(days=60):
+                    f = Field(d, s, e, "last_signature")
         return f
     return best[1] if best else None
 

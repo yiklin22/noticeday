@@ -6,7 +6,7 @@ Measured on the 102-contract test split of CUAD, real SEC contracts annotated by
 
 ## Results
 
-CUAD test split, 102 contracts, current code (13 Nov 2026). "26 of 59" means
+CUAD test split, 102 contracts, rules as of commit `cca2f0c` (13 Nov 2026). "26 of 59" means
 26 right out of the 59 contracts where the lawyers recorded a value.
 **Wrong** is a value given and wrong (the dangerous case); **FA** (false alarm)
 is a value where CUAD has none.
@@ -18,7 +18,8 @@ is a value where CUAD has none.
 
 Union = the rule value if there is one, otherwise the local model's value
 (Qwen3-4B-Instruct-2507 on CPU) if its quote passes the evidence gate.
-Rules take about 10 ms per contract; the model about 46 s on 8 CPU threads.
+Rules take about 17 ms per contract (median over the 407 dev contracts; mean
+24 ms); the model about 46 s on 8 CPU threads.
 Full tables: `docs/results/test-*.md`.
 
 - Renewal and notice periods are read well. The initial expiration date is
@@ -28,12 +29,20 @@ Full tables: `docs/results/test-*.md`.
 - In the first test run, all three wrong union deadlines came from a wrong
   start date, not from the arithmetic. That is why start dates were the
   focus of the latest dev work (below).
-- **The test split is no longer untouched.** It was run once on frozen code
-  (`bedc0d0`, table under [History](#history)), then once after each of
-  several dev-only rule changes on 13 Nov 2026, and once more for the
-  table above. No rule was written from a test-split error, but the
-  repeated runs mean these figures are less clean than a single held-out
+- **The latest dev gain did not carry over.** The start-date work below
+  took dev start dates from 260 to 281 of 340 right, but on test the rules
+  lost one correct expiration date (27 to 26 of 59) and the union lost one
+  (38 to 37).
+- **The test split is no longer untouched.** By the commit record it has
+  been run seven times: once on frozen code (`66e258e`, from `bedc0d0`;
+  table under [History](#history)), after five dev-only rule changes
+  (`e837af4`, `91fd94c`, `353fcda`, `816e640`, `b3e954f`), and once for the
+  table above (`41b1a30`). No rule was written from a test-split error, but
+  the repeated runs make these figures less clean than a single held-out
   run. The dev split (407 contracts) is where the rules were tuned.
+- After that last test run, a code review tightened two start-date rules
+  (see below). Dev results did not change; the test split was not run
+  again, so the table above is for `cca2f0c`.
 
 ## Quick start
 
@@ -186,7 +195,7 @@ expiration minus notice period, by CUAD's own convention.
 ### Start dates (13 Nov 2026, dev split only)
 
 Start dates were the main error source. Scored against CUAD's effective
-date, or its agreement date when there is no effective date (partial dates
+date, or its agreement date when the effective-date field is empty (partial dates
 like "[]/[]/2013" are not scored), the rules had 260 of 340 dev start dates
 right, 39 wrong and 41 not found. (An earlier count in this README, 261/341,
 used a slightly different definition.) The 39 wrong ones, grouped by cause:
@@ -207,13 +216,22 @@ start date and fixed none, so that change was dropped.
 Each fix has a test in `tests/test_extract.py` and was kept only because
 dev expiration and deadline results did not get worse.
 
+A code review afterwards found two of the new rules too loose: the
+commencement rule also took "The term of each Statement of Work shall
+commence on ..." and "the Reseller ... shall start on ...", and the
+signature rule chained any run of "Date:" dates. Both now require the
+contract (or its term) as the subject, or a signature block ("/s/", "By:")
+and at most two dates. Dev start dates, expiration and deadlines are
+unchanged by this; tests cover the review's cases.
+
 | dev split, rules | before | after |
 |---|---|---|
 | start date | 260 of 340 right, 39 wrong, 41 not found | 281 of 340 right, 17 wrong, 42 not found |
 | initial expiration | 132 of 247, 22 wrong, 18 FA | 136 of 247, 17 wrong, 18 FA |
 | send-notice-by date | 30 of 68 right, 5 wrong | 31 of 68 right, 5 wrong |
 
-On the test split (one run, after all of the above): rule start dates
+On the test split (one run at `cca2f0c`, before the review fixes; raw
+output in `docs/results/test-start-dates.md`): rule start dates
 65 of 87 right, 14 wrong, 8 not found. Rules expiration went from 27 of 59
 (7 wrong) to 26 of 59 (8 wrong); union from 38 (6 wrong) to 37 (7 wrong).
 Renewal, notice and the send-notice-by date did not change. So the dev gain
@@ -285,7 +303,7 @@ Full tables: `docs/results/test-*.md`. What the numbers say:
   than discard them. Some are true errors (termination-for-convenience
   notice).
 - Speed: the 4B model took 46 s per contract on 8 CPU threads (79 minutes
-  for 102 contracts); the rules take about 10 ms.
+  for 102 contracts); the rules took about 10 ms at the time.
 
 ### Dev-only changes after the first test run
 

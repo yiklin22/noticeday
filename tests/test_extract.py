@@ -175,3 +175,14 @@ def test_start_date_takes_the_last_signature():
     # Two unrelated dates are not a signature pair.
     ex = extract("Fees are due on November 29, 1999 and December 29, 1999.")
     assert ex.get("start_date") == dt.date(1999, 11, 29)
+
+
+def test_start_date_ignores_sub_documents_parties_and_date_lists():
+    pre = "THIS AGREEMENT made and entered into this 17th day of November, 2015, by A and B. "
+    # A statement of work's or a party's start is not the contract's start (code review, 13 Nov 2026).
+    assert extract(pre + "The term of each Statement of Work shall commence on March 3, 2018.").get("start_date") == dt.date(2015, 11, 17)
+    assert extract(pre + "Under this Agreement, the Reseller's marketing program shall start on March 3, 2018.").get(
+        "start_date") == dt.date(2015, 11, 17)
+    # A run of dates outside a signature block is not a signature pair, and a pair is at most two dates.
+    assert extract("Payments: Date: March 1, 2007 Date: April 1, 2007 Date: May 1, 2007").get("start_date") == dt.date(2007, 3, 1)
+    assert extract("By: /s/ A Date: March 1, 2007 Date: March 2, 2007 Date: March 3, 2007").get("start_date") == dt.date(2007, 3, 2)
