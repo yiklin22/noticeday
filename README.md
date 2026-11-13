@@ -18,8 +18,9 @@ is a value where CUAD has none.
 
 Union = the rule value if there is one, otherwise the local model's value
 (Qwen3-4B-Instruct-2507 on CPU) if its quote passes the evidence gate.
-Rules take about 17 ms per contract (median over the 407 dev contracts; mean
-24 ms); the model about 46 s on 8 CPU threads.
+Rules take about 11 to 17 ms per contract (median over the 407 dev contracts,
+four timings under different machine load; mean 17 to 24 ms); the model
+about 46 s on 8 CPU threads.
 Full tables: `docs/results/test-*.md`.
 
 - Renewal and notice periods are read well. The initial expiration date is
@@ -48,7 +49,7 @@ Full tables: `docs/results/test-*.md`.
 
 ```bash
 uv venv && uv pip install -e . pytest httpx
-pytest -q                                   # 40 tests (4 need '.[mcp]')
+pytest -q                                   # 41 tests (4 need '.[mcp]')
 python scripts/seed_demo.py demo.db         # needs data/cuad (see "Reproduce"); or upload your own
 NOTICEDAY_DB=demo.db uvicorn noticeday.app:app --port 8830
 # second reader: add NOTICEDAY_MODEL=<Qwen3-4B-Instruct-2507 folder> and pip install -e '.[model]'; needs ~8 GB RAM
@@ -216,13 +217,17 @@ start date and fixed none, so that change was dropped.
 Each fix has a test in `tests/test_extract.py` and was kept only because
 dev expiration and deadline results did not get worse.
 
-A code review afterwards found two of the new rules too loose: the
-commencement rule also took "The term of each Statement of Work shall
-commence on ..." and "the Reseller ... shall start on ...", and the
-signature rule chained any run of "Date:" dates. Both now require the
-contract (or its term) as the subject, or a signature block ("/s/", "By:")
-and at most two dates. Dev start dates, expiration and deadlines are
-unchanged by this; tests cover the review's cases.
+A code review and a verification pass afterwards found two of the new
+rules too loose: the commencement rule also took "The term of each
+Statement of Work shall commence on ...", "... commencing on ..." after a
+schedule's term, and "the Reseller ... shall start on ...", and the
+signature rule chained any run of "Date:" dates. The commencement rule now
+needs the contract itself as the subject ("this Agreement", "the term",
+"the term of this Agreement"; not "the term of each Statement of Work"),
+and the signature rule needs a signature block ("/s/", "By:") and takes at
+most two dates. Dev start dates, expiration and deadlines are unchanged by
+this; tests cover the review's cases. Known gap: a term sentence with more
+than 80 characters between "the Term" and "commencing" is still not read.
 
 | dev split, rules | before | after |
 |---|---|---|

@@ -183,6 +183,11 @@ def test_start_date_ignores_sub_documents_parties_and_date_lists():
     assert extract(pre + "The term of each Statement of Work shall commence on March 3, 2018.").get("start_date") == dt.date(2015, 11, 17)
     assert extract(pre + "Under this Agreement, the Reseller's marketing program shall start on March 3, 2018.").get(
         "start_date") == dt.date(2015, 11, 17)
+    assert extract(pre + "The term of each Statement of Work, commencing on March 3, 2018, is one year.").get(
+        "start_date") == dt.date(2015, 11, 17)
+    assert extract(pre + "The initial term of the lease of Equipment under each Schedule, commencing on March 3, 2018, "
+                   "is one year.").get("start_date") == dt.date(2015, 11, 17)
+    assert extract(pre + "Under this program, this program shall start on March 3, 2018.").get("start_date") == dt.date(2015, 11, 17)
     # A run of dates outside a signature block is not a signature pair, and a pair is at most two dates.
     assert extract("Payments: Date: March 1, 2007 Date: April 1, 2007 Date: May 1, 2007").get("start_date") == dt.date(2007, 3, 1)
     assert extract("By: /s/ A Date: March 1, 2007 Date: March 2, 2007 Date: March 3, 2007").get("start_date") == dt.date(2007, 3, 2)
