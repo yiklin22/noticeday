@@ -167,3 +167,11 @@ def test_start_date_skips_other_agreements_between_other_parties():
     # The contract's own preamble, even late, says "this".
     ex = extract(FILLER[:1600] + " This Master Agreement, dated as of April 13, 2012, between A and B.")
     assert ex.get("start_date") == dt.date(2012, 4, 13)
+
+
+def test_start_date_takes_the_last_signature():
+    ex = extract("By: /s/ A Title: VP Sales Date: 1/19/07 Date: January 22, 2007 DISTRIBUTOR AGREEMENT 1. Appointment.")
+    assert ex.get("start_date") == dt.date(2007, 1, 22)
+    # Two unrelated dates are not a signature pair.
+    ex = extract("Fees are due on November 29, 1999 and December 29, 1999.")
+    assert ex.get("start_date") == dt.date(1999, 11, 29)

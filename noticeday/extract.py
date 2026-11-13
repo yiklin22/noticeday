@@ -154,6 +154,15 @@ def _start_date(text: str):
             score, rule = max(score, 1), "first_date"
         if best is None or score > best[0]:
             best = (score, Field(d, s, e, rule))
+    if best and best[1].rule == "first_date":
+        # Signature blocks list one date per signer ("Date: 1/19/07 Date: January 22, 2007");
+        # the contract takes effect when the last party signs.
+        f = best[1]
+        for d, s, e in find_dates(text[f.end: f.end + 60], f.end):
+            if not re.fullmatch(r"[\s:]*(?:dated?|date\s+signed)?[\s:]*", text[f.end:s], re.I) or d <= f.value or (d - f.value).days > 60:
+                break
+            f = Field(d, s, e, "last_signature")
+        return f
     return best[1] if best else None
 
 
