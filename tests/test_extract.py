@@ -129,3 +129,19 @@ def test_term_lengths_are_not_notice_periods_or_initial_terms():
     ex = extract("The term of this Agreement shall be determined in writing by the parties hereto in respect of any "
                  "subsequent one year renewal term.")
     assert ex.get("term") is None
+
+
+FILLER = "The parties shall cooperate in good faith. " * 80  # pushes later text past the preamble
+
+
+def test_start_date_named_effective_date_wins():
+    # The date the contract labels "Effective Date" beats a later "effective" date of another document.
+    ex = extract("THIS IP AGREEMENT is entered into as of April 14, 2014 (the \"Effective Date\"), by and between A and B. "
+                 + FILLER + "\"License\" means the License Agreement between A and C, effective as of July 31, 2010.")
+    assert ex.get("start_date") == dt.date(2014, 4, 14)
+    # A labelled date in the term section, far from the preamble, beats the signing date.
+    ex = extract("This Strategic Alliance Agreement is entered into as of December 27, 2011 by and among A and B. " + FILLER
+                 + "11.1 Term. This Agreement shall be effective as of January 1, 2012 (the \"Effective Date\").")
+    assert ex.get("start_date") == dt.date(2012, 1, 1)
+    ex = extract("This agreement (\"Agreement\") is entered into on April 15 , 2010 (\"EffectiveDate\") by and between A and B.")
+    assert ex.get("start_date") == dt.date(2010, 4, 15)

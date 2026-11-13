@@ -107,6 +107,9 @@ NOTICE_BEFORE = re.compile(r"notice[^.;]{0,40}$", re.I)
 LENGTH_OF = re.compile(r"\s*(?:-\s*)?(?:initial\s+|renewal\s+|additional\s+|extension\s+|successive\s+)?(?:terms?|periods?)\b", re.I)
 
 
+EFFECTIVE_LABEL = re.compile(r"\s*,?\s*\((?:the\s+|such\s+date,?\s+the\s+|hereinafter\s+(?:the\s+)?)?[\"“]?effective\s*date[\"”]?\s*\)", re.I)
+
+
 def _start_date(text: str):
     best = None
     head = max(3000, len(text) // 5)
@@ -129,9 +132,12 @@ def _start_date(text: str):
             if rx.search(window):
                 score, rule = sc, name
                 break
+        # "... as of April 14, 2014 (the "Effective Date")": the contract names this date.
+        if EFFECTIVE_LABEL.match(after):
+            score, rule = 5, "effective_label"
         if s < head:
             score += 0.5
-        if s >= head and rule != "effective":
+        if s >= head and rule not in ("effective", "effective_label"):
             continue
         if not rule:
             score, rule = max(score, 1), "first_date"
