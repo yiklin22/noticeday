@@ -226,8 +226,10 @@ needs the contract itself as the subject ("this Agreement", "the term",
 "the term of this Agreement"; not "the term of each Statement of Work"),
 and the signature rule needs a signature block ("/s/", "By:") and takes at
 most two dates. Dev start dates, expiration and deadlines are unchanged by
-this; tests cover the review's cases. Known gap: a term sentence with more
-than 80 characters between "the Term" and "commencing" is still not read.
+this; tests cover the review's cases. Known gaps: a bare "the term" is
+assumed to be the contract's own, so "The Term for each Statement of
+Work, commencing on ..." still sets the start date; and a term sentence
+with more than 80 characters between "the Term" and "commencing" is not read.
 
 | dev split, rules | before | after |
 |---|---|---|

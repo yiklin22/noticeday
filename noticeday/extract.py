@@ -42,6 +42,7 @@ EFFECTIVE_CUES = [
     # "commencing the 1st day of September 2004", "The commencement date for this contract will be ...".
     # The subject must be the contract or its term, so a sub-document's term ("The term of each Statement of
     # Work shall commence on ...") or a party's activity ("the Reseller shall start on ...") does not count.
+    # "promotion" is there for one dev contract ("This promotion shall begin on ...", a Promotion Agreement).
     (re.compile(r"(?:(?:(?:\b(?:the|initial)\s+term(?!\s+of\b)|\bterm\s+of\s+(?:this|the)\s+(?:agreement|contract|franchise|lease)\b(?!\s+of\b))|\bthis\s+(?:agreement|contract|lease|promotion)|"
                 r"\b(?:the\s+)?appointment|\bthe\s+franchise)\s*(?:\([^)]{0,40}\)\s*)?(?:shall|will|is\s+to)\s+(?:commence|begin|start)\s+(?:on|as\s+of)|"
                 r"(?:\b(?:the|initial)\s+term(?!\s+of\b)|\bterm\s+of\s+(?:this|the)\s+(?:agreement|contract|franchise|lease)\b(?!\s+of\b))(?:(?!renew|extension)[^.;]){0,80}?,?\s+commencing(?:\s+on)?|"
