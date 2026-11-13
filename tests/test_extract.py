@@ -96,3 +96,14 @@ def test_more_ways_to_state_a_renewal():
     ex = extract("The initial term of this Agreement is five (5) years. Upon expiry of the Initial Term this Agreement "
                  "shall automatically renew for successive terms of the same duration, unless either party gives notice.")
     assert ex.get("renewal") == Duration(5, "year")
+
+
+def test_start_date_skips_filing_footers_and_other_documents():
+    ex = extract("Source: ACME MEDICAL, INC., 10-K, 3/21/2019 EXHIBIT 10.4 THIS AGREEMENT is made on March 1, 2018 "
+                 "between A and B.")
+    assert ex.get("start_date") == dt.date(2018, 3, 1)
+    ex = extract("Supply Agreement. Reference is made to the EPC Agreement dated September 30, 2009 (the \"EPC Agreement\"). "
+                 "Nothing else is dated.")
+    assert ex.get("start_date") is None
+    ex = extract("This Agreement is dated May 4, 2017 (the \"Effective Date\") between A and B.")
+    assert ex.get("start_date") == dt.date(2017, 5, 4)

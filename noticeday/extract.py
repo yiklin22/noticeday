@@ -108,6 +108,18 @@ def _start_date(text: str):
     head = max(3000, len(text) // 5)
     for d, s, e in find_dates(text):
         window = text[max(0, s - 90): s]
+        # Filing footers ("Source: ACME INC, 10-K, 3/21/2019") are not the contract's date.
+        if re.search(r"Source:\s*[^,]{1,60}(?:,[^,]{1,30}){1,3},\s*$|\b(?:10-K|10-Q|8-K|S-1|F-1|20-F|10KSB|1-A|SB-2|S-4|10-12G)(?:/A)?\s*,\s*$",
+                     text[max(0, s - 90): s]):
+            continue
+        # The date of another document: "... Agreement dated May 1, 2009 (the
+        # "EPC Agreement")" or "... dated 12 December 2003 entitled ...".
+        after = text[e: e + 60]
+        named = re.match(r"\s*,?\s*\((?:the\s+|hereinafter\s+)?[\"\u201c]([^\"\u201d]{1,40})[\"\u201d]", after)
+        if named and not re.search(r"effective|^(?:this\s+)?agreement$|commencement|execution|contract\s+date", named.group(1), re.I):
+            continue
+        if re.match(r"\s*,?\s*entitled\b", after, re.I):
+            continue
         score, rule = 0, ""
         for rx, sc, name in EFFECTIVE_CUES:
             if rx.search(window):

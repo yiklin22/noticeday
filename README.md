@@ -138,9 +138,9 @@ the dev split only, I fixed why the rules missed 104 dev expiration dates:
 
 | split | method | expiration before | expiration after | deadline before | deadline after |
 |---|---|---|---|---|---|
-| dev | rules | 45.7% (113/247), 30 wrong, 22 FA | 53.4% (132/247), 28 wrong, 21 FA | 24 right, 8 wrong | 28 right, 8 wrong |
+| dev | rules | 45.7% (113/247), 30 wrong, 22 FA | 53.4% (132/247), 23 wrong, 18 FA | 24 right, 8 wrong | 28 right, 6 wrong |
 | test | rules | 44.1% (26/59), 9 wrong, 4 FA | 45.8% (27/59), 7 wrong, 4 FA | 2/10, 2 wrong | 3/10, 2 wrong |
-| test | union | 62.7% (37/59), 8 wrong, 10 FA | 64.4% (38/59), 7 wrong, 10 FA | 4/10, 3 wrong | 4/10, 3 wrong |
+| test | union | 62.7% (37/59), 8 wrong, 10 FA | 64.4% (38/59), 6 wrong, 10 FA | 4/10, 3 wrong | 4/10, 3 wrong |
 
 **Renewal wording (same day).** A second pass on dev added renewal phrasings
 the rules missed: "renewing annually", "renewed tacitly every year",
@@ -151,6 +151,15 @@ equals the initial term). Dev renewal went from 74.2% (92/124, 4 wrong) to
 changed nothing that counts: renewal stays 17/23 (one fewer false alarm).
 Two dev deadlines moved from "needs facts" to wrong: the renewal is now
 found, and the start date was a few days off, which is the known weak point.
+
+**Start dates (same day).** Wrong start dates cause most wrong deadlines.
+The rules now skip SEC filing footers ("Source: ACME INC., 10-K,
+3/21/2019") and dates that belong to another document ("the EPC Agreement
+dated September 30, 2009 (the "EPC Agreement")", "... dated ... entitled").
+On dev, start dates right stay 261/341; wrong ones fall from 57 to 39 (they
+become "not found", so a person enters them). Dev expiration wrong 28 -> 23,
+false alarms 21 -> 18, deadline wrong 8 -> 6, correct unchanged. On test,
+rules expiration stays 27/59 with 7 wrong; union goes from 7 wrong to 6.
 
 The test split was run several times to get the "after" figures (once per
 change, no test-driven edits), so it is no longer untouched. The gain on test (+1 correct, -2 wrong) is much smaller
@@ -195,7 +204,7 @@ ended. It is a reason the review step stays.
 
 ```bash
 uv venv && uv pip install -e . pytest httpx
-pytest -q                                   # 33 tests (4 need '.[mcp]')
+pytest -q                                   # 34 tests (4 need '.[mcp]')
 python scripts/seed_demo.py demo.db         # needs data/cuad (below); or upload your own
 NOTICEDAY_DB=demo.db uvicorn noticeday.app:app --port 8830
 # second reader: add NOTICEDAY_MODEL=<Qwen3-4B-Instruct-2507 folder> and pip install -e '.[model]'; needs ~8 GB RAM
