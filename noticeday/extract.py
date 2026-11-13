@@ -38,6 +38,13 @@ class Extraction:
 
 
 EFFECTIVE_CUES = [
+    # The term clause's own start beats the signing date: "The term of this Agreement shall commence on ...",
+    # "commencing the 1st day of September 2004", "The commencement date for this contract will be ...".
+    (re.compile(r"(?:(?:(?<!renewal\s)(?<!extension\s)(?<!additional\s)\bterm\b|\bthis\s+\w+|\bappointment\b|\bfranchise\b)(?:(?!renew|extension)[^.;]){0,80}?"
+                r"(?:shall|will|to)\s+(?:commence|begin|start)\s+(?:on|as\s+of)|"
+                r"(?:(?<!renewal\s)(?<!extension\s)(?<!additional\s)\bterm\b|\bthis\s+\w+)(?:(?!renew|extension)[^.;]){0,80}?,?\s+commencing(?:\s+on)?|"
+                r"commencement\s+date[^.;]{0,30}?(?:will\s+be|shall\s+be|is|means:?)|"
+                r"effective\s+date\s+of\s+the\s+\w+\s+(?:will|shall)\s+be)\s*(?:the\s+)?$", re.I), 4.5, "commence"),
     (re.compile(r"effective(?:\s+date)?[\s\"'\)]*(?:as\s+of|on|from|is|shall\s+be|means|:)?[\s\"'(]*(?:the\s+)?$", re.I), 4, "effective"),
     (re.compile(r"(?:dated|entered\s+into|made)(?:\s+and\s+entered\s+into)?(?:\s+effective)?\s+(?:as\s+of|on|this)\s*(?:the\s+)?$", re.I), 3, "dated"),
     (re.compile(r"\bas\s+of\s*(?:the\s+)?$", re.I), 3, "as_of"),
@@ -137,7 +144,7 @@ def _start_date(text: str):
             score, rule = 5, "effective_label"
         if s < head:
             score += 0.5
-        if s >= head and rule not in ("effective", "effective_label"):
+        if s >= head and rule not in ("effective", "effective_label", "commence"):
             continue
         if not rule:
             score, rule = max(score, 1), "first_date"

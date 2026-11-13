@@ -145,3 +145,15 @@ def test_start_date_named_effective_date_wins():
     assert ex.get("start_date") == dt.date(2012, 1, 1)
     ex = extract("This agreement (\"Agreement\") is entered into on April 15 , 2010 (\"EffectiveDate\") by and between A and B.")
     assert ex.get("start_date") == dt.date(2010, 4, 15)
+
+
+def test_start_date_is_where_the_term_commences():
+    # The term clause's start beats the signing date in the preamble.
+    def start(t):
+        return extract("THIS AGREEMENT made and entered into this 17th day of November, 2015, by A and B. " + t).get("start_date")
+    assert start("2. TERM. The term of the Franchise shall be twenty (20) years, commencing on January 1, 2016.") == dt.date(2016, 1, 1)
+    assert start("Term. The term of this Agreement (the \"Term\") shall commence on December 1, 2001.") == dt.date(2001, 12, 1)
+    assert start("1.4 Contract Term The commencement date for this contract will be 16th June 2004.") == dt.date(2004, 6, 16)
+    assert start("2.1 The Appointment will begin on 27 January 2020.") == dt.date(2020, 1, 27)
+    # A renewal term's start is not the contract's start.
+    assert start("Each renewal term shall commence on January 1, 2017.") == dt.date(2015, 11, 17)
