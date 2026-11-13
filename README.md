@@ -263,4 +263,7 @@ for m in model_raw model union agree; do python scripts/evaluate.py --split test
   franchisor's notice; a renewal the parties must both agree to), 1 wrong.
   That is an inspection, not a measurement.
 - Evergreen month-to-month continuations ("thereafter continues on a month
-  to month basis until terminated") are often missed by the rules.
+  to month basis until terminated") are now read as a 1-month renewal with
+  their notice period (since 13 Nov), but the scheduler still treats them
+  like any renewal; a contract that runs "until terminated" with no renewal
+  wording is shown as "no fixed end".
