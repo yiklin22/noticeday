@@ -157,3 +157,13 @@ def test_start_date_is_where_the_term_commences():
     assert start("2.1 The Appointment will begin on 27 January 2020.") == dt.date(2020, 1, 27)
     # A renewal term's start is not the contract's start.
     assert start("Each renewal term shall commence on January 1, 2017.") == dt.date(2015, 11, 17)
+
+
+def test_start_date_skips_other_agreements_between_other_parties():
+    ex = extract("JOINT VENTURE AGREEMENT. " + FILLER[:1600] + " Rights licensed pursuant to that certain Services Agreement, dated as "
+                 "of November 28, 2013, by and between FSL and TPH. THIS JOINT VENTURE AGREEMENT is made as of this 23rd day "
+                 "of May, 2017 by and among A and B.")
+    assert ex.get("start_date") == dt.date(2017, 5, 23)
+    # The contract's own preamble, even late, says "this".
+    ex = extract(FILLER[:1600] + " This Master Agreement, dated as of April 13, 2012, between A and B.")
+    assert ex.get("start_date") == dt.date(2012, 4, 13)

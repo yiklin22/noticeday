@@ -46,7 +46,7 @@ EFFECTIVE_CUES = [
                 r"commencement\s+date[^.;]{0,30}?(?:will\s+be|shall\s+be|is|means:?)|"
                 r"effective\s+date\s+of\s+the\s+\w+\s+(?:will|shall)\s+be)\s*(?:the\s+)?$", re.I), 4.5, "commence"),
     (re.compile(r"effective(?:\s+date)?[\s\"'\)]*(?:as\s+of|on|from|is|shall\s+be|means|:)?[\s\"'(]*(?:the\s+)?$", re.I), 4, "effective"),
-    (re.compile(r"(?:dated|entered\s+into|made)(?:\s+and\s+entered\s+into)?(?:\s+effective)?\s+(?:as\s+of|on|this)\s*(?:the\s+)?$", re.I), 3, "dated"),
+    (re.compile(r"(?:dated|entered\s+into|made)(?:\s+and\s+entered\s+into)?(?:\s+effective)?\s+(?:as\s+of|on|this)(?:\s+this)?\s*(?:the\s+)?$", re.I), 3, "dated"),
     (re.compile(r"\bas\s+of\s*(?:the\s+)?$", re.I), 3, "as_of"),
     (re.compile(r"(?:dated|entered\s+into|made)\b.{0,40}$", re.I), 2, "dated_near"),
 ]
@@ -133,6 +133,10 @@ def _start_date(text: str):
         if named and not re.search(r"effective|^(?:this\s+)?agreement$|commencement|execution|contract\s+date", named.group(1), re.I):
             continue
         if re.match(r"\s*,?\s*entitled\b", after, re.I):
+            continue
+        # "... Services Agreement, dated as of November 28, 2013, by and between FSL and TPH": a date
+        # of another agreement in the body. The contract's own preamble says "this" or comes first.
+        if s > 1500 and re.match(r"\s*,?\s*(?:by\s+and\s+)?(?:between|among)\b", after, re.I) and not re.search(r"\bthis\b", window[-80:], re.I):
             continue
         score, rule = 0, ""
         for rx, sc, name in EFFECTIVE_CUES:
