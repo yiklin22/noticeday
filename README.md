@@ -138,7 +138,7 @@ the dev split only, I fixed why the rules missed 104 dev expiration dates:
 
 | split | method | expiration before | expiration after | deadline before | deadline after |
 |---|---|---|---|---|---|
-| dev | rules | 45.7% (113/247), 30 wrong, 22 FA | 53.4% (132/247), 23 wrong, 18 FA | 24 right, 8 wrong | 29 right, 7 wrong |
+| dev | rules | 45.7% (113/247), 30 wrong, 22 FA | 53.4% (132/247), 22 wrong, 18 FA | 24 right, 8 wrong | 30 right, 5 wrong |
 | test | rules | 44.1% (26/59), 9 wrong, 4 FA | 45.8% (27/59), 7 wrong, 4 FA | 2/10, 2 wrong | 3/10, 2 wrong |
 | test | union | 62.7% (37/59), 8 wrong, 10 FA | 64.4% (38/59), 6 wrong, 10 FA | 4/10, 3 wrong | 4/10, 3 wrong |
 
@@ -168,6 +168,12 @@ captured; and "within sixty (60) days prior to the expiration" is no longer
 mistaken for a cure period. Dev notice 59 -> 62 correct (no new wrong
 values or false alarms); dev deadline 28 right / 6 wrong -> 29 / 7. Test
 unchanged (11/13 rules, 12/13 union).
+
+**Lengths vs notice (same day).** A duration followed by "term(s)" or
+"period(s)" ("successive 5-year terms") is no longer taken as the notice
+period, and one followed by "renewal" ("one year renewal term") is no longer
+taken as the initial term. Dev notice 62 -> 63 correct and 1 -> 0 wrong;
+dev deadline 29 right / 7 wrong -> 30 / 5. Test unchanged.
 
 The test split was run several times to get the "after" figures (once per
 change, no test-driven edits), so it is no longer untouched. The gain on test (+1 correct, -2 wrong) is much smaller
@@ -212,7 +218,7 @@ ended. It is a reason the review step stays.
 
 ```bash
 uv venv && uv pip install -e . pytest httpx
-pytest -q                                   # 35 tests (4 need '.[mcp]')
+pytest -q                                   # 36 tests (4 need '.[mcp]')
 python scripts/seed_demo.py demo.db         # needs data/cuad (below); or upload your own
 NOTICEDAY_DB=demo.db uvicorn noticeday.app:app --port 8830
 # second reader: add NOTICEDAY_MODEL=<Qwen3-4B-Instruct-2507 folder> and pip install -e '.[model]'; needs ~8 GB RAM

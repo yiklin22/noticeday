@@ -104,6 +104,7 @@ IMPLICIT_RENEWAL = [
     (re.compile(r"half\s+a\s+year", re.I), Duration(6, "month")),
 ]
 NOTICE_BEFORE = re.compile(r"notice[^.;]{0,40}$", re.I)
+LENGTH_OF = re.compile(r"\s*(?:-\s*)?(?:initial\s+|renewal\s+|additional\s+|extension\s+|successive\s+)?(?:terms?|periods?)\b", re.I)
 
 
 def _start_date(text: str):
@@ -182,6 +183,9 @@ def _term(text: str, start_field):
                 return Field(d, ds, de, "end_date"), None
         for dur, ds, de in find_durations(sent[:cut], s):
             if dur.unit not in ("year", "month"):
+                continue
+            # "any subsequent one year renewal term": a renewal's length, not the initial term.
+            if re.match(r"\s*(?:-\s*)?(?:renewal|extension|additional|successive)\b", text[de: de + 20], re.I):
                 continue
             if SURVIVAL.search(text[de: de + 90]):
                 continue
@@ -283,7 +287,8 @@ def _renewal(text: str):
     if MUTUAL.search(sent) and not AUTO.search(sent):
         return None, None, None, None
     for dur, ds, de in find_durations(sent, s):
-        is_notice = _is_notice(text, ds, de, s)
+        # "successive 5-year terms": a length of a term, never a notice period.
+        is_notice = _is_notice(text, ds, de, s) and not LENGTH_OF.match(text[de: de + 30])
         if is_notice and dur.unit in ("day", "week", "month") or is_notice and notice is None and dur.unit == "year" and renewal:
             if notice is None:
                 notice = Field(dur, ds, de, "notice_in_renewal")

@@ -120,3 +120,12 @@ def test_notice_for_stopping_a_continuation():
     ex = extract("This Agreement shall automatically renew for successive one (1) year terms. Either party may terminate "
                  "if the other fails to cure a breach within thirty (30) days after written notice.")
     assert ex.get("notice") is None
+
+
+def test_term_lengths_are_not_notice_periods_or_initial_terms():
+    ex = extract("The Term shall automatically renew thereafter for successive 5-year terms unless either party provides "
+                 "prior written notice of termination not less than 90 days prior to the end of such five-year term.")
+    assert ex.get("notice") == Duration(90, "day")
+    ex = extract("The term of this Agreement shall be determined in writing by the parties hereto in respect of any "
+                 "subsequent one year renewal term.")
+    assert ex.get("term") is None

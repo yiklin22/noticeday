@@ -2,7 +2,7 @@
 
 | field | correct | wrong | missed | false alarm | true empty | flagged | unscorable | accuracy where gold has a value |
 |---|---|---|---|---|---|---|---|---|
-| expiration | 132 | 23 | 92 | 18 | 125 | 0 | 17 | 53.4% (132/247) |
+| expiration | 132 | 22 | 93 | 18 | 125 | 0 | 17 | 53.4% (132/247) |
 | renewal | 104 | 3 | 17 | 9 | 259 | 0 | 15 | 83.9% (104/124) |
-| notice | 62 | 1 | 22 | 9 | 311 | 0 | 2 | 72.9% (62/85) |
-| deadline | 29 | 7 | 0 | 0 | 0 | 32 | 0 | 42.6% (29/68) |
+| notice | 63 | 0 | 22 | 9 | 311 | 0 | 2 | 74.1% (63/85) |
+| deadline | 30 | 5 | 0 | 0 | 0 | 33 | 0 | 44.1% (30/68) |

@@ -5,11 +5,11 @@
   "tallies": {
     "expiration": {
       "false_alarm": 18,
-      "missed": 92,
+      "missed": 93,
       "true_empty": 125,
       "unscorable": 17,
       "correct": 132,
-      "wrong": 23
+      "wrong": 22
     },
     "renewal": {
       "missed": 17,
@@ -21,16 +21,15 @@
     },
     "notice": {
       "true_empty": 311,
-      "correct": 62,
+      "correct": 63,
       "false_alarm": 9,
       "missed": 22,
-      "wrong": 1,
       "unscorable": 2
     },
     "deadline": {
-      "correct": 29,
-      "flagged": 32,
-      "wrong": 7
+      "correct": 30,
+      "flagged": 33,
+      "wrong": 5
     }
   }
 }
